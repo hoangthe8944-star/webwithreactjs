@@ -1,0 +1,189 @@
+/* src/styles/ProfilePage.css */
+.profile-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
+  color: #ffffff;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+.profile-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 1.5rem 2rem;
+}
+
+.back-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 9999px;
+  transition: all 0.3s ease;
+  font-weight: 600;
+}
+
+.back-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateX(-4px);
+}
+
+.profile-hero {
+  position: relative;
+  height: 420px;
+  background: linear-gradient(135deg, #00d4ff, #6e00ff, #ff006e);
+  overflow: hidden;
+}
+
+.profile-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.8), transparent 30%);
+}
+
+.profile-avatar-wrapper {
+  position: relative;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+  padding: 0 3rem 3rem;
+}
+
+.avatar-container {
+  position: relative;
+  width: 192px;
+  height: 192px;
+  border-radius: 50%;
+  background: linear-gradient(45deg, #00ffff, #00d4ff, #6e00ff);
+  padding: 6px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+  transition: all 0.4s ease;
+}
+
+.avatar-container:hover {
+  transform: scale(1.05);
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.8);
+}
+
+.avatar-inner {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: #111;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.avatar-inner img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.camera-btn {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  width: 48px;
+  height: 48px;
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(10px);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.avatar-container:hover .camera-btn {
+  opacity: 1;
+}
+
+.profile-info h1 {
+  font-size: 4.5rem;
+  font-weight: 900;
+  margin: 0;
+  text-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  letter-spacing: -2px;
+}
+
+.admin-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: linear-gradient(90deg, #9c00ff, #ff006e);
+  padding: 0.75rem 1.5rem;
+  border-radius: 9999px;
+  font-weight: bold;
+  font-size: 0.9rem;
+  box-shadow: 0 8px 25px rgba(156, 0, 255, 0.4);
+}
+
+.profile-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  font-size: 1.25rem;
+  opacity: 0.95;
+}
+
+.profile-menu {
+  max-width: 900px;
+  margin: 3rem auto;
+  padding: 0 3rem;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border-radius: 1.5rem;
+  padding: 1.5rem 2rem;
+  margin-bottom: 1rem;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.menu-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateY(-4px);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+}
+
+.menu-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.logout-btn {
+  background: linear-gradient(90deg, #ff006e, #ff4757);
+  color: white;
+  font-weight: bold;
+  font-size: 1.25rem;
+  padding: 1.5rem;
+  border-radius: 1.5rem;
+  margin-top: 2rem;
+  box-shadow: 0 15px 35px rgba(255, 0, 110, 0.4);
+  transition: all 0.3s ease;
+}
+
+.logout-btn:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 25px 50px rgba(255, 0, 110, 0.6);
+}

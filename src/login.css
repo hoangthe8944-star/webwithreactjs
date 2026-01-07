@@ -1,0 +1,279 @@
+/* --- login-custom.css (BLUE OMBRE EDITION) --- */
+
+/* Reset cục bộ */
+.lp-wrapper * {
+  box-sizing: border-box;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+/* Container */
+.lp-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #020617; /* Nền xanh đen sâu thẳm */
+  overflow: hidden;
+  z-index: 9999;
+}
+
+/* Ảnh nền (Đổi sang ảnh tone xanh công nghệ) */
+.lp-bg-image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  /* Ảnh nền trừu tượng tone xanh */
+  background-image: url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2072');
+  background-size: cover;
+  background-position: center;
+  opacity: 0.3; /* Mờ đi để làm nổi bật form */
+  z-index: 0;
+}
+
+/* Lớp phủ Ombre Xanh */
+.lp-bg-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  /* Gradient từ Xanh đậm -> Xanh tím than */
+  background: linear-gradient(135deg, rgba(8, 47, 73, 0.9), rgba(15, 23, 42, 0.8), rgba(2, 6, 23, 0.7));
+  z-index: 1;
+}
+
+/* Thẻ Form (Kính mờ xanh nhạt) */
+.lp-card {
+  position: relative;
+  z-index: 10;
+  width: 100%;
+  max-width: 420px;
+  padding: 40px;
+  /* Nền kính pha chút xanh cyan */
+  background: rgba(14, 165, 233, 0.05);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(56, 189, 248, 0.2); /* Viền xanh sáng nhẹ */
+  border-radius: 24px;
+  box-shadow: 0 25px 50px -12px rgba(8, 145, 178, 0.25); /* Bóng đổ xanh */
+  animation: lpFadeInUp 0.6s ease-out;
+}
+
+/* Header */
+.lp-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+/* Vòng tròn Logo (Ombre Xanh) */
+.lp-logo-circle {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 16px;
+  /* Ombre từ Cyan sang Blue */
+  background: linear-gradient(135deg, #06b6d4, #3b82f6);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 30px rgba(6, 182, 212, 0.5); /* Phát sáng cyan */
+  border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.lp-title {
+  color: white;
+  font-size: 28px;
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: -0.5px;
+}
+
+.lp-title span {
+  /* Chữ nhấn màu Cyan sáng */
+  color: #22d3ee;
+  text-shadow: 0 0 10px rgba(34, 211, 238, 0.5);
+}
+
+.lp-subtitle {
+  color: #bae6fd; /* Xanh nhạt */
+  font-size: 14px;
+  margin-top: 8px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-weight: 500;
+}
+
+/* Input Group */
+.lp-input-group {
+  margin-bottom: 24px;
+  position: relative;
+}
+
+.lp-label {
+  display: block;
+  color: #7dd3fc; /* Label màu xanh trời */
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  margin-left: 4px;
+  letter-spacing: 0.5px;
+}
+
+.lp-input-wrapper {
+  position: relative;
+}
+
+/* Input Field */
+input.lp-input-field {
+  width: 100%;
+  padding: 14px 45px;
+  /* Nền input tối màu xanh đen */
+  background: rgba(2, 6, 23, 0.4) !important;
+  border: 1px solid rgba(56, 189, 248, 0.2) !important;
+  border-radius: 12px !important;
+  color: #e0f2fe !important; /* Chữ nhập vào màu trắng xanh */
+  font-size: 15px !important;
+  outline: none !important;
+  transition: all 0.3s ease;
+}
+
+input.lp-input-field:focus {
+  background: rgba(2, 6, 23, 0.6) !important;
+  border-color: #06b6d4 !important; /* Focus viền màu Cyan */
+  box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.15);
+}
+
+input.lp-input-field::placeholder {
+  color: rgba(125, 211, 252, 0.4);
+}
+
+/* Icons */
+.lp-icon-left {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #0ea5e9; /* Icon màu xanh biển */
+  width: 20px;
+  height: 20px;
+  transition: color 0.3s;
+}
+
+/* Khi focus input thì icon sáng lên */
+.lp-input-wrapper:focus-within .lp-icon-left {
+  color: #22d3ee;
+}
+
+.lp-icon-btn-right {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #0ea5e9;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+}
+
+.lp-icon-btn-right:hover {
+  color: #67e8f9;
+}
+
+/* Nút Đăng nhập (Blue Ombre Gradient) */
+button.lp-submit-btn {
+  width: 100%;
+  padding: 16px;
+  /* Gradient tuyệt đẹp từ Cyan -> Blue -> Indigo */
+  background: linear-gradient(90deg, #0891b2, #2563eb, #0891b2);
+  background-size: 200% auto;
+  border: none;
+  border-radius: 12px;
+  color: white;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);
+}
+
+button.lp-submit-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  background-position: right center; /* Hiệu ứng chạy màu khi hover */
+  box-shadow: 0 8px 25px rgba(6, 182, 212, 0.5);
+}
+
+button.lp-submit-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  filter: grayscale(0.8);
+}
+
+/* Thông báo lỗi */
+.lp-error-box {
+  background: rgba(220, 38, 38, 0.15);
+  border: 1px solid rgba(220, 38, 38, 0.3);
+  color: #fca5a5;
+  padding: 12px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Footer Link */
+.lp-footer {
+  text-align: center;
+  margin-top: 30px;
+  color: #94a3b8;
+  font-size: 14px;
+}
+
+.lp-link {
+  color: #38bdf8;
+  font-weight: 700;
+  text-decoration: none;
+  margin-left: 5px;
+  transition: color 0.2s;
+}
+
+.lp-link:hover {
+  text-decoration: underline;
+  color: #67e8f9;
+}
+
+/* Animation */
+@keyframes lpFadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.lp-spin {
+  animation: lpSpin 1s linear infinite;
+}
+
+@keyframes lpSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
