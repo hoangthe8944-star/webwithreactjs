@@ -1,7 +1,7 @@
 import { Play } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { ImageWithFallback } from './figma/ImageWithFallback';
-import type { Artist } from './ArtistPage';
+import type { Artist } from '../../api/artistApi';
 
 // ✅ IMPORT ĐÚNG CÁC API NHƯ TRONG PLAYLISTSPAGE
 import type { Song, HistoryItem } from '../../api/apiclient';
