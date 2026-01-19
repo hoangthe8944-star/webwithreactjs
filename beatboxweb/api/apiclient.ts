@@ -93,7 +93,7 @@ export const searchPublicSongs = (query: string) => {
 export const getSongInfoAndIncrementView = (songId: string) => {
     // Backend của bạn xử lý việc tăng view trong endpoint GET /info
     // Vì vậy, không cần hàm incrementViewCount riêng nữa.
-    return axios.get<Song>(`${PUBLIC_URL}${songId}/info`, {
+    return axios.get<Song>(`${PUBLIC_URL}/${songId}/info`, {
         headers: {
             "ngrok-skip-browser-warning": "true"
         }
