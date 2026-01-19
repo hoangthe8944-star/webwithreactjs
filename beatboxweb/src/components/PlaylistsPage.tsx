@@ -9,8 +9,8 @@ import PlaylistCover from './PlaylistCover'; // Import Component Grid ảnh
 import {
   getPublicPlaylists,
   getUserPlaylists,
-} from '../../api/playlistApi';
-import type { PlaylistDto } from '../../api/playlistApi';
+} from '../../api/playlistapi';
+import type { PlaylistDto } from '../../api/playlistapi';
 
 import type { Song } from '../../api/apiclient';
 
