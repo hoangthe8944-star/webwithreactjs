@@ -164,7 +164,7 @@ export default function App() {
           {currentPage === 'library' && <LibraryPage onPlaySong={handlePlaySong} />}
           {currentPage === 'liked-songs' && <LikedSongsPage onPlaySong={handlePlaySong} />}
           {currentPage === 'recently-played' && <RecentlyPlayedPage onPlaySong={handlePlaySong} currentUserId={currentUserId} />}
-          {currentPage === 'podcast' && <PodcastPage onStartLive={() => alert("Đang phát triển!")} />}
+          {currentPage === 'podcast' && <PodcastPage />}
           {currentPage === 'artist-detail' && selectedArtist && (
             <ArtistPage artist={selectedArtist} onBack={() => setCurrentPage('home')} onPlaySong={handlePlaySong} />
           )}
