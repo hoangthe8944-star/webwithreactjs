@@ -22,8 +22,9 @@ import { logout } from '../api/authapi';
 import type { Song } from '../api/apiclient';
 import './index.css';
 import { Menu } from 'lucide-react';
-import { ArtistPage, type Artist } from './components/ArtistPage';
 import { PremiumModal } from './components/PremiumModal';
+import type { Artist } from '../api/artistApi';
+import { ArtistPage } from './components/ArtistPage';
 
 
 export type PageType = 'home' | 'library' | 'playlists' | 'search' | 'nowplaying' | 'profile' | 'create-playlist' | 'liked-songs' | 'recently-played' | 'podcast' | 'playlist-detail' | 'artist-detail';
