@@ -11,7 +11,8 @@
     "predeploy": "npm run build",
     "deploy": "gh-pages -d build"
   },
-  "homepage": "https://hoangthe8944-star.github.io/boxonline/",
+  "homepage": "https://boxonline-htk1do1rm-thes-projects-667db5e0.vercel.app/",
+
   "dependencies": {
     "@radix-ui/react-avatar": "^1.1.11",
     "@radix-ui/react-dialog": "^1.1.15",
