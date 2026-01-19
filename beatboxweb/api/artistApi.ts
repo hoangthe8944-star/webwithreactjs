@@ -1,10 +1,10 @@
 import axios from 'axios';
 
 // Các URL gốc của Backend
-const PUBLIC_ARTIST_URL = 'http://backend-jfn4.onrender.com/api/public/artists';
-const MGMT_ARTIST_URL = 'http://backend-jfn4.onrender.com/api/artist';
-const PUBLIC_SONG_URL = 'http://backend-jfn4.onrender.com/api/public';
-const PUBLIC_ALBUM_URL = 'http://backend-jfn4.onrender.com/api/public';
+const PUBLIC_ARTIST_URL = 'https://backend-jfn4.onrender.com/api/public/artists';
+const MGMT_ARTIST_URL = 'https://backend-jfn4.onrender.com/api/artist';
+const PUBLIC_SONG_URL = 'https://backend-jfn4.onrender.com/api/public';
+const PUBLIC_ALBUM_URL = 'https://backend-jfn4.onrender.com/api/public';
 
 // const PUBLIC_ARTIST_URL = 'http://localhost:8081/api/public/artists';
 // const MGMT_ARTIST_URL = 'http://localhost:8081/api/artist';
