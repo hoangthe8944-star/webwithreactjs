@@ -6,7 +6,7 @@ import type { Artist } from './ArtistPage';
 // ✅ IMPORT ĐÚNG CÁC API NHƯ TRONG PLAYLISTSPAGE
 import type { Song, HistoryItem } from '../../api/apiclient';
 import { getTrendingSongs, getUserHistory } from '../../api/apiclient';
-import { getPublicPlaylists } from '../../api/playlistApi';
+import { getPublicPlaylists } from '../../api/playlistapi';
 import { getAllArtists } from '../../api/artistApi';
 import PlaylistCover from './PlaylistCover';
 
