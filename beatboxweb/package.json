@@ -11,7 +11,7 @@
     "predeploy": "npm run build",
     "deploy": "gh-pages -d build"
   },
-  "homepage": "https://hoangthe8944-star.github.io/boxonline/",
+  "homepage": "https://hoangthe8944-star.github.io/boxonline",
   
   "dependencies": {
     "@radix-ui/react-avatar": "^1.1.11",
