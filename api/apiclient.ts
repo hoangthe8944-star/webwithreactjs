@@ -5,7 +5,13 @@ import axios from 'axios';
 const PUBLIC_URL = 'https://backend-jfn4.onrender.com/api/public';
 const History_URL = 'https://backend-jfn4.onrender.com/api/songs';
 const LYRICS_URL = 'https://backend-jfn4.onrender.com/api/v1/lyrics';
+const HISTORY_URL = 'https://backend-jfn4.onrender.com/api/history';
 
+// --- CẤU HÌNH URL ---
+// const PUBLIC_URL = 'http://localhost:8081/api/public';
+// const History_URL = 'http://localhost:8081/api/songs';
+// const LYRICS_URL = 'http://localhost:8081/api/v1/lyrics';
+// const HISTORY_URL = 'http://localhost:8081/api/history';
 
 
 // ====================================================
@@ -37,6 +43,21 @@ export interface LyricsResponse {
     syncedLyrics: string; // Lời bài hát dạng [00:12.34] để chạy chữ
 }
 
+export interface HistoryItem {
+    id: string;
+    userId: string;
+    songId: string;
+    playedAt: string; // ISO Date string
+    songDetails: Song; // Thông tin chi tiết bài hát để hiển thị UI
+}
+
+export interface Category {
+    id: string;
+    name: string;
+    slug: string;
+    color: string;
+    imageUrl: string;
+}
 // ====================================================
 // 2. API CALLS
 // ====================================================
@@ -86,36 +107,37 @@ export const getAllPublicSongs = () => {
         }
     });
 };
-export const getRecentlyPlayedSongs = () => {
-    const token = sessionStorage.getItem("accessToken");
-    console.log("Token hiện tại:", token); // Dòng này để debug
+// export const getRecentlyPlayedSongs = () => {
+//     const token = sessionStorage.getItem("accessToken");
+//     console.log("Token hiện tại:", token); // Dòng này để debug
 
-    if (!token) {
-        console.warn("Chưa có token, không thể lấy lịch sử");
-        return Promise.reject("No token");
-    }
+//     if (!token) {
+//         console.warn("Chưa có token, không thể lấy lịch sử");
+//         return Promise.reject("No token");
+//     }
 
-    return axios.get(`${History_URL}/history/recent`, {
-        headers: {
-            "Authorization": `Bearer ${token}`,
-            "ngrok-skip-browser-warning": "true"
-        }
-    });
-};
-export const recordPlayback = (songId: string) => {
-    const token = sessionStorage.getItem("accessToken");
+//     return axios.get(`${History_URL}/history/recent`, {
+//         headers: {
+//             "Authorization": `Bearer ${token}`,
+//             "ngrok-skip-browser-warning": "true"
+//         }
+//     });
+// };
+// export const recordPlayback = (songId: string) => {
+//     const token = sessionStorage.getItem("accessToken");
 
-    // Endpoint này là POST và không có body, chỉ cần URL
-    const fullUrl = `${History_URL}/${songId}/playback`;
+//     // Endpoint này là POST và không có body, chỉ cần URL
+//     const fullUrl = `${History_URL}/${songId}/playback`;
 
-    // Chúng ta không quan tâm đến kết quả trả về, chỉ cần gọi là được
-    return axios.post(fullUrl, {}, { // Gửi một body rỗng {}
-        headers: {
-            "ngrok-skip-browser-warning": "true",
-            "Authorization": `Bearer ${token}`
-        }
-    });
-};
+//     // Chúng ta không quan tâm đến kết quả trả về, chỉ cần gọi là được
+//     return axios.post(fullUrl, {}, { // Gửi một body rỗng {}
+//         headers: {
+//             "ngrok-skip-browser-warning": "true",
+//             "Authorization": `Bearer ${token}`
+//         }
+//     });
+// };
+
 /**
  * Lấy lời bài hát từ Backend (Backend sẽ gọi LRCLIB)
  * @param track Tên bài hát
@@ -136,18 +158,57 @@ export const getLyrics = (track: string, artist: string, album?: string, duratio
         }
     });
 };
+// ====================================================
+// 3. HISTORY API CALLS
+// ====================================================
+
 /**
- * [ĐÃ XÓA] Hàm incrementViewCount không còn cần thiết.
- * Lý do: Trong PublicController, endpoint GET /songs/{songId}/info đã tự động gọi
- * songService.incrementViewCount(songId). Việc có một hàm riêng để tăng view
- * có thể dẫn đến việc view bị tăng gấp đôi mỗi lần phát nhạc.
+ * Ghi lại lượt nghe khi bài hát bắt đầu phát
+ * @param songId ID của bài hát
+ * @param userId ID của người dùng (lấy từ localStorage/context)
  */
-/*
-export const incrementViewCount = (songId: string) => {
-    return axios.post(`${PUBLIC_URL}/songs/${songId}/view`, {}, {
-         headers: {
+export const recordSongPlay = (songId: string, userId: string) => {
+    const token = sessionStorage.getItem("accessToken");
+    return axios.post(`${HISTORY_URL}/${songId}`, {}, {
+        headers: {
+            "currentUserId": userId,
+            "Authorization": `Bearer ${token}`,
             "ngrok-skip-browser-warning": "true"
         }
     });
 };
-*/
+
+/**
+ * Lấy danh sách 20 bài hát đã nghe gần đây nhất của người dùng
+ * @param userId ID của người dùng
+ */
+export const getUserHistory = (userId: string) => {
+    return axios.get<HistoryItem[]>(`${HISTORY_URL}/me`, {
+        headers: {
+            "currentUserId": userId,
+            "ngrok-skip-browser-warning": "true"
+        }
+    });
+};
+
+/**
+ * Xóa toàn bộ lịch sử nghe của người dùng
+ * @param userId ID của người dùng
+ */
+export const clearUserHistory = (userId: string) => {
+    return axios.delete(`${HISTORY_URL}/me`, {
+        headers: {
+            "currentUserId": userId,
+            "ngrok-skip-browser-warning": "true"
+        }
+    });
+};
+
+
+export const getAllCategories = () => {
+    return axios.get<Category[]>(`${PUBLIC_URL}/categories`, {
+        headers: {
+            "ngrok-skip-browser-warning": "true"
+        }
+    });
+};

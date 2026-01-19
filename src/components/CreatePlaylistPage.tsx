@@ -1,16 +1,17 @@
-import { Plus, RefreshCw, Music } from 'lucide-react';
+import { Plus, RefreshCw } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
 import { Switch } from './ui/switch';
-import { ImageWithFallback } from './figma/ImageWithFallback';
 import { toast } from "sonner";
 import axios from "axios";
 import type { Song } from '../../api/apiclient';
-import { getRecentlyPlayedSongs } from '../../api/apiclient';
-// 1. Import component Grid chúng ta vừa viết
+
+// ✅ SỬA LỖI: Import đúng tên hàm getUserHistory từ apiclient
+import { getUserHistory, getAllPublicSongs } from '../../api/apiclient';
+
 import PlaylistCover from './PlaylistCover';
 
 interface CreatePlaylistPageProps {
@@ -30,42 +31,44 @@ export function CreatePlaylistPage({
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [isPublic, setIsPublic] = useState(true);
-
-  // coverImage để null để kích hoạt chế độ Grid tự động
-  const [coverImage, setCoverImage] = useState<string | null>(null);
+  const [coverImage] = useState<string | null>(null);
 
   const [addedSongs, setAddedSongs] = useState<Set<string>>(new Set());
   const [addedSongObjects, setAddedSongObjects] = useState<Song[]>([]);
   const [suggestedSongs, setSuggestedSongs] = useState<Song[]>([]);
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isRefreshing] = useState(false);
   const [loading, setLoading] = useState(false);
 
   /* ================= FETCH SONGS ================= */
   useEffect(() => {
     const fetchSuggestedSongs = async () => {
       try {
-        const res = await axios.get<Song[]>(
-          'https://backend-jfn4.onrender.com/api/songs/all'
-        );
-        setSuggestedSongs(res.data.slice(0, 10)); // Lấy nhiều hơn để refresh cho sướng
+        // Ưu tiên lấy tất cả bài hát công khai để gợi ý
+        const res = await getAllPublicSongs();
+        setSuggestedSongs(res.data.slice(0, 10));
       } catch (err) {
-        const recentRes = await getRecentlyPlayedSongs();
-        setSuggestedSongs(recentRes.data.slice(0, 10));
+        console.error("Lỗi lấy danh sách nhạc, thử lấy lịch sử làm gợi ý...");
+        // ✅ DÙNG HÀM MỚI: Nếu không lấy được nhạc hệ thống, lấy nhạc đã nghe gần đây
+        if (currentUserId) {
+          try {
+            const recentRes = await getUserHistory(currentUserId);
+            // Chuyển đổi từ HistoryItem sang Song
+            const historySongs = recentRes.data.map(item => item.songDetails);
+            setSuggestedSongs(historySongs.slice(0, 10));
+          } catch (historyErr) {
+            console.error("Không thể lấy dữ liệu gợi ý");
+          }
+        }
       }
     };
     fetchSuggestedSongs();
-  }, []);
+  }, [currentUserId]);
 
   /* ================= ADD SONG ================= */
   const handleAddSong = (song: Song) => {
     if (addedSongs.has(song.id)) return;
-
     setAddedSongs(prev => new Set(prev).add(song.id));
     setAddedSongObjects(prev => [...prev, song]);
-
-    // ❌ KHÔNG setCoverImage(song.coverUrl) nữa 
-    // Để coverImage là null -> PlaylistCover sẽ tự hiện Grid 4 bài đầu
-
     toast.success(`Đã thêm "${song.title}"`);
   };
 
@@ -83,33 +86,31 @@ export function CreatePlaylistPage({
         type: "user",
         isPublic,
         tracks: Array.from(addedSongs),
-        // ✅ Gửi coverImage là null để Backend lưu đúng ý đồ
-        // (Và vì Backend đã thêm field này nên sẽ không còn lỗi 400)
         coverImage: coverImage
       };
+      
       const config = {
         headers: {
           "Content-Type": "application/json",
-          "currentUserId": currentUserId, // Lấy từ props của component CreatePlaylistPage
-          "isAdmin": isAdmin ? "true" : "false" // Lấy từ props
+          "currentUserId": currentUserId,
+          "isAdmin": isAdmin ? "true" : "false"
         }
       };
 
-      console.log("Sending payload:", payload);
-
+      // Đổi URL thành localhost nếu bạn đang chạy local, hoặc dùng biến môi trường
       const res = await axios.post(
-        "https://backend-jfn4.onrender.com/api/playlists",
+        "http://localhost:8081/api/playlists",
         payload,
         config
       );
 
       toast.success(`Playlist "${res.data.name}" đã tạo`);
       onCreated?.(res.data);
-      onBack(); // Quay lại trang trước
+      onBack();
 
     } catch (err) {
       console.error("❌ Create playlist error:", err);
-      toast.error("Tạo playlist thất bại. Kiểm tra lại Backend DTO.");
+      toast.error("Tạo playlist thất bại. Kiểm tra kết nối mạng.");
     } finally {
       setLoading(false);
     }
@@ -124,8 +125,7 @@ export function CreatePlaylistPage({
       <h1 className="text-3xl font-bold mb-8">Tạo Playlist Mới</h1>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-
-        {/* 2. AREA PREVIEW - SỬ DỤNG PLAYLISTCOVER ĐỂ HIỆN GRID */}
+        {/* AREA PREVIEW */}
         <div className="lg:col-span-4 flex flex-col items-center gap-4">
           <div className="w-full aspect-square max-w-[300px]">
             <PlaylistCover
@@ -134,7 +134,7 @@ export function CreatePlaylistPage({
               name={name}
             />
           </div>
-          <p className="text-sm text-white/40 italic">
+          <p className="text-sm text-white/40 italic text-center">
             {addedSongObjects.length < 4
               ? `Thêm ${4 - addedSongObjects.length} bài nữa để hoàn tất Grid ảnh`
               : "Ảnh bìa Grid 2x2 đã sẵn sàng"}
@@ -147,7 +147,7 @@ export function CreatePlaylistPage({
             <div className="space-y-2">
               <Label>Tên playlist</Label>
               <Input
-                className="bg-white/5 border-white/10"
+                className="bg-white/5 border-white/10 text-white"
                 placeholder="Tên playlist của tôi"
                 value={name}
                 onChange={e => setName(e.target.value)}
@@ -158,7 +158,7 @@ export function CreatePlaylistPage({
             <div className="space-y-2">
               <Label>Mô tả</Label>
               <Textarea
-                className="bg-white/5 border-white/10"
+                className="bg-white/5 border-white/10 text-white"
                 placeholder="Viết gì đó cho playlist này..."
                 value={description}
                 onChange={e => setDescription(e.target.value)}
@@ -197,7 +197,7 @@ export function CreatePlaylistPage({
                       alt={song.title}
                     />
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate">{song.title}</p>
+                      <p className="font-medium truncate text-white">{song.title}</p>
                       <p className="text-xs text-white/40 truncate">{song.artistName}</p>
                     </div>
                     <Button

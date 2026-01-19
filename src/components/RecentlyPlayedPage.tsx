@@ -2,12 +2,10 @@ import { useState, useEffect } from 'react';
 import { Play, History, Music4 } from 'lucide-react';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 
-// ✅ BƯỚC 1: IMPORT API VÀ SONG TYPE
-// Giả sử bạn sẽ tạo hàm getRecentlyPlayedSongs trong apiclient
-import { getRecentlyPlayedSongs } from '../../api/apiclient'; 
-import type { Song } from '../../api/apiclient'; 
+// ✅ CẬP NHẬT IMPORT: Sử dụng getUserHistory từ apiclient
+import { getUserHistory } from '../../api/apiclient';
+import type { Song, HistoryItem } from '../../api/apiclient';
 
-// Hàm tiện ích để định dạng thời lượng
 const formatDuration = (seconds: number) => {
   if (isNaN(seconds) || seconds < 0) return "0:00";
   const minutes = Math.floor(seconds / 60);
@@ -15,38 +13,41 @@ const formatDuration = (seconds: number) => {
   return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
 };
 
-// Cập nhật props interface để khớp với App.tsx
 interface RecentlyPlayedPageProps {
   onPlaySong: (song: Song, contextPlaylist: Song[]) => void;
+  currentUserId: string;
 }
 
-export function RecentlyPlayedPage({ onPlaySong }: RecentlyPlayedPageProps) {
-  // ✅ BƯỚC 2: THÊM STATE ĐỂ QUẢN LÝ DỮ LIỆU TỪ API
+export function RecentlyPlayedPage({ onPlaySong, currentUserId }: RecentlyPlayedPageProps) {
   const [songs, setSongs] = useState<Song[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // ✅ BƯỚC 3: SỬ DỤNG useEffect ĐỂ GỌI API KHI COMPONENT ĐƯỢC TẢI
+  // ✅ BƯỚC 3: SỬ DỤNG ENDPOINT MỚI
   useEffect(() => {
     const fetchSongs = async () => {
+      if (!currentUserId) return; // Kiểm tra trực tiếp từ props
+
       try {
         setIsLoading(true);
-        setError(null);
-        // Gọi API để lấy danh sách đã phát gần đây
-        const response = await getRecentlyPlayedSongs(); 
-        setSongs(response.data);
+        // Gọi API với ID chuẩn từ App.tsx
+        const response = await getUserHistory(currentUserId);
+
+        const extractedSongs = response.data
+          .map((item: HistoryItem) => item.songDetails)
+          .filter(song => song !== null);
+
+        setSongs(extractedSongs);
       } catch (err) {
-        console.error("Lỗi khi tải danh sách đã phát gần đây:", err);
-        setError("Không thể tải được lịch sử nghe nhạc. Vui lòng thử lại.");
+        console.error("Lỗi:", err);
+        setError("Không thể tải lịch sử.");
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchSongs();
-  }, []); // Mảng rỗng đảm bảo useEffect chỉ chạy một lần
-
-  // Hàm render nội dung chính dựa trên state
+  }, [currentUserId]);
   const renderContent = () => {
     if (isLoading) {
       return <p className="text-center text-blue-200 mt-8">Đang tải lịch sử nghe nhạc...</p>;
@@ -69,22 +70,21 @@ export function RecentlyPlayedPage({ onPlaySong }: RecentlyPlayedPageProps) {
     return (
       <div className="space-y-1">
         {songs.map((song, index) => (
-          <div 
-            key={song.id}
-            // ✅ BƯỚC 4: CẬP NHẬT onPlaySong VỚI CONTEXT LÀ DANH SÁCH 'songs'
+          <div
+            key={`${song.id}-${index}`} // Thêm index vào key để tránh trùng nếu nghe 1 bài nhiều lần
             onClick={() => onPlaySong(song, songs)}
             className="group flex items-center gap-4 p-3 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
           >
             <div className="w-8 text-center text-blue-300 group-hover:text-white">
               {index + 1}
             </div>
-            
-            <ImageWithFallback 
-              src={song.coverUrl} 
+
+            <ImageWithFallback
+              src={song.coverUrl}
               alt={song.title}
               className="w-12 h-12 rounded object-cover shadow-sm flex-shrink-0"
             />
-            
+
             <div className="flex-1 min-w-0 grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="flex flex-col justify-center">
                 <span className="font-medium text-white truncate group-hover:text-cyan-300 transition-colors">
@@ -115,7 +115,6 @@ export function RecentlyPlayedPage({ onPlaySong }: RecentlyPlayedPageProps) {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header Section (giữ nguyên) */}
       <div className="p-4 sm:p-8 bg-gradient-to-b from-orange-800/40 to-blue-900/20 flex flex-col sm:flex-row items-center sm:items-end gap-6 sm:gap-8">
         <div className="w-32 h-32 sm:w-40 sm:h-40 bg-gradient-to-br from-orange-500 to-red-600 rounded-full shadow-2xl flex items-center justify-center flex-shrink-0 animate-in zoom-in duration-500">
           <History className="w-16 h-16 text-white" />
@@ -131,7 +130,6 @@ export function RecentlyPlayedPage({ onPlaySong }: RecentlyPlayedPageProps) {
         </div>
       </div>
 
-      {/* Song List */}
       <div className="flex-1 px-4 sm:px-8 py-8">
         {renderContent()}
       </div>

@@ -1,18 +1,24 @@
-import { ChevronLeft, Play, Clock, MoreHorizontal, Shuffle, Heart, Download } from 'lucide-react';
+import { ChevronLeft, Play, Clock, MoreHorizontal, Heart, Download } from 'lucide-react';
 import { Button } from './ui/button';
-import { ImageWithFallback } from './figma/ImageWithFallback';
-import type { Playlist } from '../App';
 import { useState } from 'react';
 import type { Song } from '../../api/apiclient';
-import PlaylistCover from './PlaylistCover'; // Sử dụng lại Component Grid đã viết
+import PlaylistCover from './PlaylistCover'; 
 
 interface PlaylistDetailPageProps {
-  // Playlist bây giờ nên chứa danh sách các bài hát (Song[]) đã được lấy từ API
-  playlist: Playlist & { 
-    owner?: string; 
-    description?: string; 
-    updatedAt?: string;
-    songs?: Song[]; // Danh sách bài hát thực tế
+  // Cập nhật Interface để khớp chính xác với JSON thực tế từ Backend
+  playlist: {
+    id: string;
+    name: string;
+    description?: string;
+    ownerId?: string;
+    ownerName?: string | null;
+    publicPlaylist?: boolean;
+    type?: string;
+    tracks?: string[];
+    songDetails?: Song[]; // Đổi từ songs thành songDetails
+    coverImage?: string | null; // Đổi từ cover thành coverImage
+    songCount?: number;
+    updatedAt?: string | null;
   };
   onBack: () => void;
   onPlaySong: (song: Song) => void;
@@ -21,10 +27,9 @@ interface PlaylistDetailPageProps {
 export function PlaylistDetailPage({ playlist, onBack, onPlaySong }: PlaylistDetailPageProps) {
   const [hoveredSong, setHoveredSong] = useState<string | null>(null);
 
-  // Lấy danh sách bài hát từ playlist truyền vào, nếu không có thì để mảng rỗng
-  const songs = playlist.songs || [];
+  // ✅ ĐÚNG: Lấy dữ liệu từ songDetails
+  const songs = playlist.songDetails || [];
 
-  // Hàm helper định dạng thời gian (giây -> mm:ss)
   const formatTime = (seconds: number) => {
     if (!seconds) return "0:00";
     const mins = Math.floor(seconds / 60);
@@ -47,29 +52,32 @@ export function PlaylistDetailPage({ playlist, onBack, onPlaySong }: PlaylistDet
 
         <div className="flex flex-col md:flex-row gap-6 items-center md:items-end">
           <div className="w-48 h-48 md:w-56 md:h-56 shadow-2xl shadow-black/50 rounded-lg overflow-hidden flex-shrink-0">
-             {/* Dùng PlaylistCover để tự động hiện Grid nếu không có ảnh bìa */}
+             {/* ✅ ĐÚNG: Truyền coverImage và songDetails vào Grid */}
              <PlaylistCover 
-                coverImage={playlist.cover} 
+                coverImage={playlist.coverImage} 
                 tracks={songs} 
                 name={playlist.name}
              />
           </div>
           
           <div className="flex-1 text-center md:text-left space-y-4">
-            <span className="text-sm font-medium uppercase tracking-wider text-white/80">Playlist</span>
+            <span className="text-sm font-medium uppercase tracking-wider text-white/80">
+                {playlist.type === 'user' ? 'Playlist của người dùng' : 'Playlist hệ thống'}
+            </span>
             <h1 className="text-4xl md:text-6xl font-black">{playlist.name}</h1>
             <p className="text-white/70 text-lg line-clamp-2">{playlist.description || 'Không có mô tả'}</p>
             
             <div className="flex items-center justify-center md:justify-start gap-2 text-sm font-medium">
               <div className="w-6 h-6 rounded-full bg-cyan-500 flex items-center justify-center text-[10px] text-black font-bold">
-                {playlist.owner ? playlist.owner.charAt(0).toUpperCase() : 'U'}
+                {/* Dùng ownerName hoặc ký tự đầu của ID nếu name null */}
+                {(playlist.ownerName || 'U').charAt(0).toUpperCase()}
               </div>
-              <span>{playlist.owner || 'Người dùng'}</span>
+              <span>{playlist.ownerName || 'Người dùng'}</span>
               <span>•</span>
-              <span>{songs.length} bài hát</span>
+              <span>{playlist.songCount || songs.length} bài hát</span>
               <span>•</span>
               <span className="text-white/60">
-                {playlist.updatedAt ? new Date(playlist.updatedAt).toLocaleDateString() : 'Gần đây'}
+                {playlist.updatedAt ? `Cập nhật ${new Date(playlist.updatedAt).toLocaleDateString()}` : 'Vừa cập nhật'}
               </span>
             </div>
           </div>
@@ -89,9 +97,6 @@ export function PlaylistDetailPage({ playlist, onBack, onPlaySong }: PlaylistDet
         
         <Button variant="ghost" size="icon" className="w-10 h-10 text-white/70 hover:text-white hover:bg-white/10 rounded-full">
           <Heart className="w-6 h-6" />
-        </Button>
-        <Button variant="ghost" size="icon" className="w-10 h-10 text-white/70 hover:text-white hover:bg-white/10 rounded-full">
-          <MoreHorizontal className="w-6 h-6" />
         </Button>
       </div>
 
@@ -125,6 +130,7 @@ export function PlaylistDetailPage({ playlist, onBack, onPlaySong }: PlaylistDet
                   
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="w-10 h-10 rounded overflow-hidden flex-shrink-0">
+                      {/* ✅ ĐÚNG: Link ảnh xịn từ Spotify, không còn bị 404 từ ID */}
                       <img src={song.coverUrl} alt={song.title} className="w-full h-full object-cover" />
                     </div>
                     <div className="min-w-0">

@@ -4,11 +4,17 @@ import axios from "axios";
 const BASE_URL = "https://backend-jfn4.onrender.com/api/auth";
 const USER_URL = "https://backend-jfn4.onrender.com/api/users";
 
+// ====================================================
+// const BASE_URL = "http://localhost:8081/api/auth";
+// const USER_URL = "http://localhost:8081/api/users";
+
+
 /**
  * ✅ ĐƯỜNG DẪN ĐĂNG NHẬP GOOGLE
  * Quan trọng: Không gọi qua Axios. Dùng window.location.href = GOOGLE_AUTH_URL
  */
 export const GOOGLE_AUTH_URL = "https://backend-jfn4.onrender.com/oauth2/authorization/google";
+// export const GOOGLE_AUTH_URL = "http://localhost:8081/oauth2/authorization/google";
 
 // ====================================================
 // 1. TYPE DEFINITIONS (INTERFACES)
