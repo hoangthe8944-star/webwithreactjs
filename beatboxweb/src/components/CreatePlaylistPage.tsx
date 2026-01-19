@@ -99,7 +99,7 @@ export function CreatePlaylistPage({
 
       // Đổi URL thành localhost nếu bạn đang chạy local, hoặc dùng biến môi trường
       const res = await axios.post(
-        "http://localhost:8081/api/playlists",
+        "https://backend-jfn4.onrender.com/api/playlists",
         payload,
         config
       );
