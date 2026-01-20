@@ -25,9 +25,11 @@ import { Menu } from 'lucide-react';
 import { PremiumModal } from './components/PremiumModal';
 import type { Artist } from '../api/artistApi';
 import { ArtistPage } from './components/ArtistPage';
+import { LiveRoomPage } from './components/LiveRoomPage';
+import { liveApi } from '../api/liveApi';
 
 
-export type PageType = 'home' | 'library' | 'playlists' | 'search' | 'nowplaying' | 'profile' | 'create-playlist' | 'liked-songs' | 'recently-played' | 'podcast' | 'playlist-detail' | 'artist-detail';
+export type PageType = 'home' | 'library' | 'playlists' | 'search' | 'nowplaying' | 'profile' | 'create-playlist' | 'liked-songs' | 'recently-played' | 'podcast' | 'playlist-detail' | 'artist-detail' | 'live-detail';
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<PageType>('home');
@@ -50,6 +52,7 @@ export default function App() {
   const [playQueue, setPlayQueue] = useState<Song[]>([]);
   const [currentQueueIndex, setCurrentQueueIndex] = useState<number>(0);
   const [previousPage, setPreviousPage] = useState<'home' | 'playlists'>('home');
+  const [liveData, setLiveData] = useState<{ roomId: string, isHost: boolean } | null>(null);
 
   const [currentHash, setCurrentHash] = useState(window.location.hash);
   useEffect(() => {
@@ -82,6 +85,47 @@ export default function App() {
     recordSongPlay(song.id, currentUserId).catch(err => console.error("Playback record error:", err));
   };
 
+  // Hàm khi người dùng bấm "Bắt đầu Live"
+  const handleStartLive = async () => {
+    const roomId = user.id;
+    try {
+      await liveApi.startLive({
+        roomId: roomId,
+        hostId: user.id,
+        hostName: user.username,
+        roomTitle: `${user.username} đang chia sẻ âm nhạc`
+      });
+      setLiveData({ roomId, isHost: true });
+      setCurrentPage('live-detail' as any);
+    } catch (err) {
+      alert("Không thể bắt đầu live. Kiểm tra lại kết nối Backend.");
+    }
+  };
+  const handleLiveNavigation = async (roomId: string, isHost: boolean) => {
+    const finalRoomId = isHost ? user.id : roomId;
+
+    if (isHost) {
+      try {
+        // Dùng liveApi đã tạo, không cần truyền Header hay lấy Token thủ công
+        await liveApi.startLive({
+          roomId: finalRoomId,
+          hostId: user.id,
+          hostName: user.username,
+          roomTitle: `${user.username} đang phát sóng`
+        });
+
+        console.log("Khởi tạo phòng Live thành công");
+      } catch (err) {
+        console.error("Lỗi khởi tạo phòng Live:", err);
+        alert("Không thể bắt đầu Live. Vui lòng kiểm tra kết nối Server!");
+        return;
+      }
+    }
+
+    // Cập nhật State để hiển thị Component LiveRoomPage
+    setLiveData({ roomId: finalRoomId, isHost });
+    setCurrentPage('live-detail' as any);
+  };
   if (currentHash.includes('/login-success')) return <LoginSuccess />;
   if (currentHash.includes('/verify')) return <VerifyPage />;
 
@@ -164,7 +208,7 @@ export default function App() {
           {currentPage === 'library' && <LibraryPage onPlaySong={handlePlaySong} />}
           {currentPage === 'liked-songs' && <LikedSongsPage onPlaySong={handlePlaySong} />}
           {currentPage === 'recently-played' && <RecentlyPlayedPage onPlaySong={handlePlaySong} currentUserId={currentUserId} />}
-          {currentPage === 'podcast' && <PodcastPage />}
+          {currentPage === 'podcast' && <PodcastPage onJoinLiveRoom={handleLiveNavigation} />}
           {currentPage === 'artist-detail' && selectedArtist && (
             <ArtistPage artist={selectedArtist} onBack={() => setCurrentPage('home')} onPlaySong={handlePlaySong} />
           )}
@@ -173,6 +217,15 @@ export default function App() {
           )}
           {currentPage === 'nowplaying' && (
             <NowPlayingPage currentSong={currentSong} isPlaying={isPlaying} onTogglePlay={() => setIsPlaying(!isPlaying)} onPlaySong={handlePlaySong} currentTime={currentTime} />
+          )}
+          {currentPage === 'live-detail' && liveData && (
+            <LiveRoomPage
+              roomId={liveData.roomId}
+              userId={user.id}
+              userName={user.username}
+              isHost={liveData.isHost}
+              onLeave={() => setCurrentPage('podcast')}
+            />
           )}
         </main>
 
