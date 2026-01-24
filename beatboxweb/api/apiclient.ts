@@ -2,16 +2,16 @@ import axios from 'axios';
 
 // --- CẤU HÌNH URL ---
 // Sử dụng process.env để linh hoạt hơn giữa môi trường dev và production
-// const PUBLIC_URL = 'https://backend-jfn4.onrender.com/api/public';
-// const History_URL = 'https://backend-jfn4.onrender.com/api/songs';
-// const LYRICS_URL = 'https://backend-jfn4.onrender.com/api/v1/lyrics';
-// const HISTORY_URL = 'https://backend-jfn4.onrender.com/api/history';
+const PUBLIC_URL = 'https://backend-jfn4.onrender.com/api/public';
+const History_URL = 'https://backend-jfn4.onrender.com/api/songs';
+const LYRICS_URL = 'https://backend-jfn4.onrender.com/api/v1/lyrics';
+const HISTORY_URL = 'https://backend-jfn4.onrender.com/api/history';
 
 // --- CẤU HÌNH URL ---
-const PUBLIC_URL = 'http://localhost:8081/api/public';
-const History_URL = 'http://localhost:8081/api/songs';
-const LYRICS_URL = 'http://localhost:8081/api/v1/lyrics';
-const HISTORY_URL = 'http://localhost:8081/api/history';
+// const PUBLIC_URL = 'http://localhost:8081/api/public';
+// const History_URL = 'http://localhost:8081/api/songs';
+// const LYRICS_URL = 'http://localhost:8081/api/v1/lyrics';
+// const HISTORY_URL = 'http://localhost:8081/api/history';
 
 
 // ====================================================

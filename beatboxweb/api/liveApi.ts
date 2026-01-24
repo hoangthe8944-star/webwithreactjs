@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-// const API_BASE = "https://backend-jfn4.onrender.com/api/live";
-const API_BASE = "http://localhost:8081/api/live";
+const API_BASE = "https://backend-jfn4.onrender.com/api/live";
+// const API_BASE = "http://localhost:8081/api/live";
 
 // Tạo một bản sao axios riêng cho Live
 const liveClient = axios.create({

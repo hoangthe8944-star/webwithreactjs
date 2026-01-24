@@ -81,7 +81,7 @@ export function PodcastPage({ onJoinLiveRoom }: PodcastPageProps) {
     const fetchLiveRooms = async () => {
       try {
         const token = sessionStorage.getItem("accessToken"); // Lấy token
-        const res = await axios.get("http://localhost:8081/api/live/active", {
+        const res = await axios.get("https://backend-jfn4.onrender.com/api/live/active", {
           headers: {
             Authorization: `Bearer ${token}`, // Gửi token ở đây
             "ngrok-skip-browser-warning": "true"

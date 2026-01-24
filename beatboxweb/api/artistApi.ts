@@ -14,15 +14,15 @@ export interface Artist {
 
 
 // Các URL gốc của Backend
-// const PUBLIC_ARTIST_URL = 'https://backend-jfn4.onrender.com/api/public/artists';
-// const MGMT_ARTIST_URL = 'https://backend-jfn4.onrender.com/api/artist';
-// const PUBLIC_SONG_URL = 'https://backend-jfn4.onrender.com/api/public';
-// const PUBLIC_ALBUM_URL = 'https://backend-jfn4.onrender.com/api/public';
+const PUBLIC_ARTIST_URL = 'https://backend-jfn4.onrender.com/api/public/artists';
+const MGMT_ARTIST_URL = 'https://backend-jfn4.onrender.com/api/artist';
+const PUBLIC_SONG_URL = 'https://backend-jfn4.onrender.com/api/public';
+const PUBLIC_ALBUM_URL = 'https://backend-jfn4.onrender.com/api/public';
 
-const PUBLIC_ARTIST_URL = 'http://localhost:8081/api/public/artists';
-const MGMT_ARTIST_URL = 'http://localhost:8081/api/artist';
-const PUBLIC_SONG_URL = 'http://localhost:8081/api/public';
-const PUBLIC_ALBUM_URL = 'http://localhost:8081/api/public';
+// const PUBLIC_ARTIST_URL = 'http://localhost:8081/api/public/artists';
+// const MGMT_ARTIST_URL = 'http://localhost:8081/api/artist';
+// const PUBLIC_SONG_URL = 'http://localhost:8081/api/public';
+// const PUBLIC_ALBUM_URL = 'http://localhost:8081/api/public';
 
 // Cấu hình Header cho các request công khai
 const publicConfig = { 
