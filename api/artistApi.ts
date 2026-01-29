@@ -1,10 +1,23 @@
 import axios from 'axios';
+import { BASE_URL } from './apiconfig';
+
+export interface Artist {
+  id: string;
+  name: string;
+  avatarUrl?: string;
+  coverImageUrl?: string;
+  followerCount?: number;
+  verified: boolean;
+  bio?: string;
+
+}
+
 
 // Các URL gốc của Backend
-const PUBLIC_ARTIST_URL = 'https://backend-jfn4.onrender.com/api/public/artists';
-const MGMT_ARTIST_URL = 'https://backend-jfn4.onrender.com/api/artist';
-const PUBLIC_SONG_URL = 'https://backend-jfn4.onrender.com/api/public';
-const PUBLIC_ALBUM_URL = 'https://backend-jfn4.onrender.com/api/public';
+const PUBLIC_ARTIST_URL = `${BASE_URL}/api/public/artists`;
+const MGMT_ARTIST_URL = `${BASE_URL}/api/artist`;
+const PUBLIC_SONG_URL = `${BASE_URL}/api/public`;
+const PUBLIC_ALBUM_URL = `${BASE_URL}/api/public`;
 
 // const PUBLIC_ARTIST_URL = 'http://localhost:8081/api/public/artists';
 // const MGMT_ARTIST_URL = 'http://localhost:8081/api/artist';

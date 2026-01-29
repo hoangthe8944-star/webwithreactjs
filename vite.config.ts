@@ -5,6 +5,8 @@ import path from 'path';
 export default defineConfig({
   plugins: [react()],
   base: '/boxonline/',
+  // base: '/',
+
   resolve: {
     extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
     alias: {

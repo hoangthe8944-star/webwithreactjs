@@ -7,7 +7,7 @@ import { loginUser, type JwtResponse, type LoginRequest, setUserSession } from "
 import "../login.css";
 
 interface LoginFormProps {
-  onLoginSuccess: (token: string) => void;
+  onLoginSuccess: (token: string, user: any) => void;
   onSwitchToRegister?: () => void; // Dấu ? nghĩa là optional
 }
 
@@ -39,9 +39,10 @@ export function LoginForm({ onLoginSuccess, onSwitchToRegister }: LoginFormProps
 
       let userRoles = data.roles || (data as any).role || [];
       if (!Array.isArray(userRoles)) userRoles = [userRoles];
+      const completeUserData = { ...data, roles: userRoles };
+      setUserSession(completeUserData);
+      onLoginSuccess(data.token, completeUserData);
 
-      setUserSession({ ...data, roles: userRoles });
-      onLoginSuccess(data.token);
 
       if (userRoles.includes("ROLE_ADMIN")) {
         navigate("/admin/dashboard");
@@ -53,7 +54,7 @@ export function LoginForm({ onLoginSuccess, onSwitchToRegister }: LoginFormProps
       if (error.response) {
         // ✅ Xử lý thêm thông báo nếu tài khoản chưa xác thực (dành cho đăng ký thủ công)
         if (error.response.status === 403) {
-            setErrorMessage("Tài khoản chưa được xác thực email. Vui lòng kiểm tra hộp thư!");
+          setErrorMessage("Tài khoản chưa được xác thực email. Vui lòng kiểm tra hộp thư!");
         } else if (error.response.status === 401) {
           setErrorMessage("Email hoặc mật khẩu không đúng.");
         } else {
@@ -148,47 +149,47 @@ export function LoginForm({ onLoginSuccess, onSwitchToRegister }: LoginFormProps
 
           {/* ✅ PHẦN THÊM MỚI: Dấu gạch ngang "Hoặc" */}
           <div style={{ display: 'flex', alignItems: 'center', margin: '20px 0', gap: '10px' }}>
-              <div style={{ flex: 1, height: '1px', backgroundColor: 'rgba(255,255,255,0.1)' }}></div>
-              <span style={{ fontSize: '12px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px' }}>Hoặc</span>
-              <div style={{ flex: 1, height: '1px', backgroundColor: 'rgba(255,255,255,0.1)' }}></div>
+            <div style={{ flex: 1, height: '1px', backgroundColor: 'rgba(255,255,255,0.1)' }}></div>
+            <span style={{ fontSize: '12px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px' }}>Hoặc</span>
+            <div style={{ flex: 1, height: '1px', backgroundColor: 'rgba(255,255,255,0.1)' }}></div>
           </div>
 
           {/* ✅ PHẦN THÊM MỚI: Nút Google */}
           <button
-              type="button"
-              onClick={handleGoogleAuth}
-              disabled={isLoading}
-              style={{
-                  width: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '12px',
-                  padding: '12px',
-                  backgroundColor: 'white',
-                  color: '#1e293b',
-                  borderRadius: '12px',
-                  fontWeight: '700',
-                  fontSize: '14px',
-                  cursor: isLoading ? 'not-allowed' : 'pointer',
-                  border: 'none',
-                  transition: 'all 0.2s',
-                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-              }}
+            type="button"
+            onClick={handleGoogleAuth}
+            disabled={isLoading}
+            style={{
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '12px',
+              padding: '12px',
+              backgroundColor: 'white',
+              color: '#1e293b',
+              borderRadius: '12px',
+              fontWeight: '700',
+              fontSize: '14px',
+              cursor: isLoading ? 'not-allowed' : 'pointer',
+              border: 'none',
+              transition: 'all 0.2s',
+              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+            }}
           >
-              <img
-                  src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
-                  alt="Google"
-                  style={{ width: '20px', height: '20px' }}
-              />
-              Tiếp tục với Google
+            <img
+              src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
+              alt="Google"
+              style={{ width: '20px', height: '20px' }}
+            />
+            Tiếp tục với Google
           </button>
 
           <div className="lp-footer" style={{ marginTop: '20px', textAlign: 'center', fontSize: '14px' }}>
-            Chưa có tài khoản? 
-            <button 
-              onClick={onSwitchToRegister} 
-              className="lp-link" 
+            Chưa có tài khoản?
+            <button
+              onClick={onSwitchToRegister}
+              className="lp-link"
               style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#22d3ee', fontWeight: 'bold', marginLeft: '5px' }}
             >
               Đăng ký

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from "react";
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { MusicPlayer } from './components/MusicPlayer';
@@ -22,11 +22,20 @@ import { logout } from '../api/authapi';
 import type { Song } from '../api/apiclient';
 import './index.css';
 import { Menu } from 'lucide-react';
-import { ArtistPage, type Artist } from './components/ArtistPage';
 import { PremiumModal } from './components/PremiumModal';
+import type { Artist } from '../api/artistApi';
+import { ArtistPage } from './components/ArtistPage';
 
+import './live.css';
+import { liveApi } from '../api/liveApi';
+import LiveFeed from "./components/LiveFeed";
+import ZegoPlayer from "./components/ZegoPlayer";
+import LiveSocial from "./components/LiveSocial";
+import LiveHostPage from "./components/LiveHostPage";
+import AIChatbox from './components/AIChatbox';
+const AIChatboxAny: any = AIChatbox;
 
-export type PageType = 'home' | 'library' | 'playlists' | 'search' | 'nowplaying' | 'profile' | 'create-playlist' | 'liked-songs' | 'recently-played' | 'podcast' | 'playlist-detail' | 'artist-detail';
+export type PageType = 'home' | 'library' | 'playlists' | 'search' | 'nowplaying' | 'profile' | 'create-playlist' | 'liked-songs' | 'recently-played' | 'podcast' | 'playlist-detail' | 'artist-detail' | 'live-detail';
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<PageType>('home');
@@ -49,6 +58,7 @@ export default function App() {
   const [playQueue, setPlayQueue] = useState<Song[]>([]);
   const [currentQueueIndex, setCurrentQueueIndex] = useState<number>(0);
   const [previousPage, setPreviousPage] = useState<'home' | 'playlists'>('home');
+  const [liveRoomId, setLiveRoomId] = useState<string | null>(null);
 
   const [currentHash, setCurrentHash] = useState(window.location.hash);
   useEffect(() => {
@@ -57,8 +67,12 @@ export default function App() {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
-  const handleAuthSuccess = (newToken: string) => {
+  const handleAuthSuccess = (newToken: string, userData: any) => {
+    sessionStorage.setItem("accessToken", newToken); // Lưu token
+    sessionStorage.setItem("user", JSON.stringify(userData)); // Lưu user info
     setToken(newToken);
+    // Không nhất thiết phải dùng window.location.href nếu bạn muốn mượt mà
+    // window.location.reload(); 
     window.location.href = "/boxonline/";
   };
 
@@ -81,6 +95,34 @@ export default function App() {
     recordSongPlay(song.id, currentUserId).catch(err => console.error("Playback record error:", err));
   };
 
+  // Hàm khi người dùng bấm "Bắt đầu Live"
+  // Trong App.tsx
+  const handleStartLive = async () => {
+    try {
+      // CHỈ TRUYỀN CHUỖI TITLE, không truyền object stringify
+      const titleString = `${user.username} đang phát live`;
+
+      const res = await liveApi.startLive(titleString);
+
+      if (res.data && res.data.roomId) {
+        setLiveRoomId(res.data.roomId);
+        setCurrentPage('live-detail');
+      }
+    } catch (err: any) {
+      console.error("Lỗi Start Live:", err);
+      if (err.response?.status === 401) {
+        alert("Phiên đăng nhập hết hạn, vui lòng login lại!");
+      } else {
+        alert("Không thể bắt đầu live");
+      }
+    }
+  };
+  const handleJoinLive = (roomId: string) => {
+    setLiveRoomId(roomId);
+    setCurrentPage('live-detail');
+  };
+
+
   if (currentHash.includes('/login-success')) return <LoginSuccess />;
   if (currentHash.includes('/verify')) return <VerifyPage />;
 
@@ -89,9 +131,15 @@ export default function App() {
       <div className="flex items-center justify-center min-h-screen bg-slate-950">
         <div className="w-full max-w-md p-4">
           {authView === 'login' ? (
-            <LoginForm onLoginSuccess={handleAuthSuccess} onSwitchToRegister={() => setAuthView('register')} />
+            <LoginForm
+              onLoginSuccess={(token, user) => handleAuthSuccess(token, user)}
+              onSwitchToRegister={() => setAuthView('register')}
+            />
           ) : (
-            <RegisterForm onRegisterSuccess={handleAuthSuccess} onSwitchToLogin={() => setAuthView('login')} />
+            <RegisterForm
+              onRegisterSuccess={(token, user) => handleAuthSuccess(token, user)}
+              onSwitchToLogin={() => setAuthView('login')}
+            />
           )}
         </div>
       </div>
@@ -163,7 +211,9 @@ export default function App() {
           {currentPage === 'library' && <LibraryPage onPlaySong={handlePlaySong} />}
           {currentPage === 'liked-songs' && <LikedSongsPage onPlaySong={handlePlaySong} />}
           {currentPage === 'recently-played' && <RecentlyPlayedPage onPlaySong={handlePlaySong} currentUserId={currentUserId} />}
-          {currentPage === 'podcast' && <PodcastPage onStartLive={() => alert("Đang phát triển!")} />}
+          {currentPage === 'podcast' && (
+            <LiveSocial user={user} />
+          )}
           {currentPage === 'artist-detail' && selectedArtist && (
             <ArtistPage artist={selectedArtist} onBack={() => setCurrentPage('home')} onPlaySong={handlePlaySong} />
           )}
@@ -173,7 +223,29 @@ export default function App() {
           {currentPage === 'nowplaying' && (
             <NowPlayingPage currentSong={currentSong} isPlaying={isPlaying} onTogglePlay={() => setIsPlaying(!isPlaying)} onPlaySong={handlePlaySong} currentTime={currentTime} />
           )}
+          {currentPage === 'podcast' && (
+            <>
+              <button
+                onClick={() => setCurrentPage('live-detail')}
+                className="m-4 px-4 py-2 bg-red-500 rounded"
+              >
+                Bắt đầu live
+              </button>
+
+              <LiveFeed onJoin={handleJoinLive} />
+            </>
+          )}
+
+          {currentPage === 'live-detail' && (
+            <LiveHostPage
+              userId={user.id.toString()}
+              userName={user.username}
+              onEnd={() => setCurrentPage('podcast')}
+            />
+          )}
+
         </main>
+        <AIChatboxAny user={user} />
 
         <MusicPlayer
           currentSong={currentSong}

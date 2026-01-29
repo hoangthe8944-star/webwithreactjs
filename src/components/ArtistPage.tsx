@@ -6,17 +6,7 @@ import type { Song } from '../../api/apiclient';
 
 // ✅ IMPORT CÁC HÀM TỪ FILE API MỚI
 import { getSongsByArtist, getAlbumsByArtist } from '../../api/artistApi';
-
-export interface Artist {
-  id: string;
-  name: string;
-  avatarUrl?: string;
-  coverImageUrl?: string;
-  followerCount?: number;
-  verified: boolean;
-  bio?: string;
-
-}
+import type { Artist } from '../../api/artistApi';
 
 interface ArtistPageProps {
   artist: Artist;

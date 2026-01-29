@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-
+import { BASE_URL } from "./apiconfig";
 // ------------------------
 // Types / Interfaces
 // ------------------------
@@ -31,7 +31,7 @@ export interface PlaylistRequest {
 // Axios instance
 // ------------------------
 const API = axios.create({
-  baseURL: "https://backend-jfn4.onrender.com/api/playlists",
+  baseURL: `${BASE_URL}/api/playlists`,
   // baseURL: "http://localhost:8081/api/playlists",
   headers: {
     "Content-Type": "application/json",

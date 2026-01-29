@@ -13,6 +13,7 @@ import type { Song } from '../../api/apiclient';
 import { getUserHistory, getAllPublicSongs } from '../../api/apiclient';
 
 import PlaylistCover from './PlaylistCover';
+import { BASE_URL } from '../../api/apiconfig';
 
 interface CreatePlaylistPageProps {
   onBack: () => void;
@@ -88,7 +89,7 @@ export function CreatePlaylistPage({
         tracks: Array.from(addedSongs),
         coverImage: coverImage
       };
-      
+
       const config = {
         headers: {
           "Content-Type": "application/json",
@@ -99,7 +100,7 @@ export function CreatePlaylistPage({
 
       // Đổi URL thành localhost nếu bạn đang chạy local, hoặc dùng biến môi trường
       const res = await axios.post(
-        "http://localhost:8081/api/playlists",
+        `${BASE_URL}/api/playlists`,
         payload,
         config
       );

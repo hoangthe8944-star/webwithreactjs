@@ -1,19 +1,21 @@
 import axios from "axios";
-
+import { BASE_URL } from "./apiconfig";
 // --- CẤU HÌNH URL ---
-const BASE_URL = "https://backend-jfn4.onrender.com/api/auth";
-const USER_URL = "https://backend-jfn4.onrender.com/api/users";
+const AUTH_URL = `${BASE_URL}/api/auth`;
+const USER_URL = `${BASE_URL}/api/users`;
+export const API_BASE = `${BASE_URL}`;
 
 // ====================================================
 // const BASE_URL = "http://localhost:8081/api/auth";
 // const USER_URL = "http://localhost:8081/api/users";
+// export const API_BASE = "http://localhost:8081";
 
 
 /**
  * ✅ ĐƯỜNG DẪN ĐĂNG NHẬP GOOGLE
  * Quan trọng: Không gọi qua Axios. Dùng window.location.href = GOOGLE_AUTH_URL
  */
-export const GOOGLE_AUTH_URL = "https://backend-jfn4.onrender.com/oauth2/authorization/google";
+export const GOOGLE_AUTH_URL = `${BASE_URL}/oauth2/authorization/google`;
 // export const GOOGLE_AUTH_URL = "http://localhost:8081/oauth2/authorization/google";
 
 // ====================================================
@@ -59,26 +61,26 @@ const config = {
  * Đăng ký tài khoản mới (Trả về thông báo yêu cầu check mail)
  */
 export const registerUser = (data: RegisterRequest) =>
-  axios.post(`${BASE_URL}/register`, data, config);
+  axios.post(`${AUTH_URL}/register`, data, config);
 
 /**
  * Xác thực email (Gọi từ trang VerifyPage)
  */
 export const verifyEmail = (token: string) =>
-  axios.get(`${BASE_URL}/verify?token=${token}`, config);
+  axios.get(`${AUTH_URL}/verify?token=${token}`, config);
 
 /**
  * Đăng nhập thủ công bằng Email/Password
  */
 export const loginUser = (data: LoginRequest) =>
-  axios.post<JwtResponse>(`${BASE_URL}/login`, data, config);
+  axios.post<JwtResponse>(`${AUTH_URL}/login`, data, config);
 
 /**
  * Yêu cầu liên kết thêm email phụ (Cần JWT)
  */
 export const requestLinkEmail = (newEmail: string) => {
   const token = getAccessToken();
-  return axios.post(`${BASE_URL}/link-request?newEmail=${newEmail}`, {}, {
+  return axios.post(`${AUTH_URL}/link-request?newEmail=${newEmail}`, {}, {
     headers: {
       ...config.headers,
       "Authorization": `Bearer ${token}`
@@ -156,7 +158,7 @@ export const logout = () => {
 
 export const setAccountPassword = (password: string) => {
   const token = getAccessToken();
-  return axios.post(`${BASE_URL}/set-password`, 
+  return axios.post(`${AUTH_URL}/set-password`, 
     { password }, 
     { headers: { "Authorization": `Bearer ${token}` } }
   );

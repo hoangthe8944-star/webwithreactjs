@@ -1,0 +1,22 @@
+@tailwind utilities;
+
+.tiktok-container {
+    height: 100vh;
+    overflow-y: scroll;
+    scroll-snap-type: y mandatory;
+    scroll-behavior: smooth;
+    overscroll-behavior: contain;
+}
+
+.tiktok-container::-webkit-scrollbar {
+    display: none;
+}
+
+.tiktok-slide {
+    height: 100vh;
+    width: 100%;
+    scroll-snap-align: start;
+    position: relative;
+    background-color: black;
+    will-change: transform;
+}

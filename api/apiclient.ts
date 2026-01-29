@@ -1,11 +1,11 @@
 import axios from 'axios';
 
-// --- CẤU HÌNH URL ---
-// Sử dụng process.env để linh hoạt hơn giữa môi trường dev và production
-const PUBLIC_URL = 'https://backend-jfn4.onrender.com/api/public';
-const History_URL = 'https://backend-jfn4.onrender.com/api/songs';
-const LYRICS_URL = 'https://backend-jfn4.onrender.com/api/v1/lyrics';
-const HISTORY_URL = 'https://backend-jfn4.onrender.com/api/history';
+import { BASE_URL, API_PATHS } from './apiconfig';
+
+export const PUBLIC_URL = `${BASE_URL}/api/public`;
+export const History_URL = `${BASE_URL}/api/songs`;
+export const LYRICS_URL = `${BASE_URL}/api/v1/lyrics`;
+export const HISTORY_URL = `${BASE_URL}/api/history`;
 
 // --- CẤU HÌNH URL ---
 // const PUBLIC_URL = 'http://localhost:8081/api/public';
@@ -93,7 +93,7 @@ export const searchPublicSongs = (query: string) => {
 export const getSongInfoAndIncrementView = (songId: string) => {
     // Backend của bạn xử lý việc tăng view trong endpoint GET /info
     // Vì vậy, không cần hàm incrementViewCount riêng nữa.
-    return axios.get<Song>(`${PUBLIC_URL}${songId}/info`, {
+    return axios.get<Song>(`${PUBLIC_URL}/${songId}/info`, {
         headers: {
             "ngrok-skip-browser-warning": "true"
         }
