@@ -33,6 +33,7 @@ import ZegoPlayer from "./components/ZegoPlayer";
 import LiveSocial from "./components/LiveSocial";
 import LiveHostPage from "./components/LiveHostPage";
 import AIChatbox from './components/AIChatbox';
+import MediaSessionManager from './components/MediaSessionManager';
 const AIChatboxAny: any = AIChatbox;
 
 export type PageType = 'home' | 'library' | 'playlists' | 'search' | 'nowplaying' | 'profile' | 'create-playlist' | 'liked-songs' | 'recently-played' | 'podcast' | 'playlist-detail' | 'artist-detail' | 'live-detail';
@@ -145,7 +146,20 @@ export default function App() {
       </div>
     );
   }
+  const handleNextMedia = () => {
+    if (playQueue.length > 0) {
+      const nextIndex = (currentQueueIndex + 1) % playQueue.length;
+      handlePlaySong(playQueue[nextIndex], playQueue);
+    }
+  };
 
+  // Hàm xử lý khi bấm Prev trên thông báo điện thoại
+  const handlePrevMedia = () => {
+    if (playQueue.length > 0) {
+      const prevIndex = (currentQueueIndex - 1 + playQueue.length) % playQueue.length;
+      handlePlaySong(playQueue[prevIndex], playQueue);
+    }
+  };
   return (
     <div className="flex h-screen bg-gradient-to-br from-blue-700 via-cyan-600 to-cyan-400 text-white overflow-hidden">
       <PremiumModal isOpen={isPremiumModalOpen} onClose={() => setIsPremiumModalOpen(false)} />
@@ -246,6 +260,15 @@ export default function App() {
 
         </main>
         <AIChatboxAny user={user} />
+        
+        <MediaSessionManager
+          currentSong={currentSong}
+          isPlaying={isPlaying}
+          onPlay={() => setIsPlaying(true)}
+          onPause={() => setIsPlaying(false)}
+          onNext={handleNextMedia}
+          onPrev={handlePrevMedia}
+        />
 
         <MusicPlayer
           currentSong={currentSong}
