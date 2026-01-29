@@ -39,6 +39,7 @@ const AIChatboxAny: any = AIChatbox;
 export type PageType = 'home' | 'library' | 'playlists' | 'search' | 'nowplaying' | 'profile' | 'create-playlist' | 'liked-songs' | 'recently-played' | 'podcast' | 'playlist-detail' | 'artist-detail' | 'live-detail';
 
 export default function App() {
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const [currentPage, setCurrentPage] = useState<PageType>('home');
   const [searchQuery, setSearchQuery] = useState('');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -260,7 +261,7 @@ export default function App() {
 
         </main>
         <AIChatboxAny user={user} />
-        
+
         <MediaSessionManager
           currentSong={currentSong}
           isPlaying={isPlaying}
@@ -268,6 +269,7 @@ export default function App() {
           onPause={() => setIsPlaying(false)}
           onNext={handleNextMedia}
           onPrev={handlePrevMedia}
+          audioRef={audioRef as React.RefObject<HTMLAudioElement>}
         />
 
         <MusicPlayer
