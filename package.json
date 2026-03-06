@@ -9,7 +9,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "predeploy": "npm run build",
-    "deploy": "gh-pages -d build -r https://hoangthe8944-star.github.io/webwithreactjs"
+    "deploy": "gh-pages -d build -r https://hoangthe8944-star.github.io/webwithreactjs.git"
   },
   "homepage": "https://hoangthe8944-star.github.io/webwithreactjs",
   "dependencies": {
