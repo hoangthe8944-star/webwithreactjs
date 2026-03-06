@@ -75,7 +75,7 @@ export default function App() {
     setToken(newToken);
     // Không nhất thiết phải dùng window.location.href nếu bạn muốn mượt mà
     // window.location.reload(); 
-    window.location.href = "/boxonline/";
+    window.location.href = "/webwithreactjs/";
   };
 
   const handleLogout = () => {

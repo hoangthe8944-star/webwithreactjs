@@ -63,7 +63,7 @@ export default function App() {
 
   const handleAuthSuccess = (newToken: string) => {
     setToken(newToken);
-    window.location.href = "/boxonline/";
+    window.location.href = "/webwithreactjs/";
   };
 
   const handleLogout = () => {
