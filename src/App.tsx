@@ -28,15 +28,12 @@ import { ArtistPage } from './components/ArtistPage';
 
 import './live.css';
 import { liveApi } from '../api/liveApi';
-import LiveFeed from "./components/LiveFeed";
 import ZegoPlayer from "./components/ZegoPlayer";
-import LiveSocial from "./components/LiveSocial";
-import LiveHostPage from "./components/LiveHostPage";
 import AIChatbox from './components/AIChatbox';
 import MediaSessionManager from './components/MediaSessionManager';
 const AIChatboxAny: any = AIChatbox;
 
-export type PageType = 'home' | 'library' | 'playlists' | 'search' | 'nowplaying' | 'profile' | 'create-playlist' | 'liked-songs' | 'recently-played' | 'podcast' | 'playlist-detail' | 'artist-detail' | 'live-detail';
+export type PageType = 'home' | 'library' | 'playlists' | 'search' | 'nowplaying' | 'profile' | 'create-playlist' | 'liked-songs' | 'recently-played' | 'podcast' | 'playlist-detail' | 'artist-detail' | 'live-detail' | 'auth';
 
 export default function App() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -61,6 +58,8 @@ export default function App() {
   const [currentQueueIndex, setCurrentQueueIndex] = useState<number>(0);
   const [previousPage, setPreviousPage] = useState<'home' | 'playlists'>('home');
   const [liveRoomId, setLiveRoomId] = useState<string | null>(null);
+  const [isLiveHost, setIsLiveHost] = useState(false);
+  const [liveSessionTitle, setLiveSessionTitle] = useState('');
 
   const [currentHash, setCurrentHash] = useState(window.location.hash);
   useEffect(() => {
@@ -84,9 +83,19 @@ export default function App() {
     window.location.reload();
   };
 
+  const navigateToAuth = () => {
+    setAuthView('login');
+    setCurrentPage('auth');
+  };
+
   // ✅ HÀM MỞ PLAYLIST (ĐÃ SỬA)
 
   const handlePlaySong = (song: Song, contextPlaylist: Song[] = []) => {
+    if (!token) {
+      navigateToAuth();
+      return;
+    }
+
     console.log("Đang gửi ID người dùng đi:", currentUserId);
     setCurrentSong(song);
     setIsPlaying(true);
@@ -97,56 +106,60 @@ export default function App() {
     recordSongPlay(song.id, currentUserId).catch(err => console.error("Playback record error:", err));
   };
 
-  // Hàm khi người dùng bấm "Bắt đầu Live"
-  // Trong App.tsx
-  const handleStartLive = async () => {
+  const handleStartPodcast = async () => {
+    if (!token || !user) {
+      navigateToAuth();
+      return;
+    }
+
     try {
-      // CHỈ TRUYỀN CHUỖI TITLE, không truyền object stringify
-      const titleString = `${user.username} đang phát live`;
+      const titleString = `${user.username} đang phát podcast live`;
 
       const res = await liveApi.startLive(titleString);
 
       if (res.data && res.data.roomId) {
         setLiveRoomId(res.data.roomId);
+        setIsLiveHost(true);
+        setLiveSessionTitle(titleString);
         setCurrentPage('live-detail');
       }
     } catch (err: any) {
-      console.error("Lỗi Start Live:", err);
+      console.error("Lỗi Start podcast:", err);
       if (err.response?.status === 401) {
-        alert("Phiên đăng nhập hết hạn, vui lòng login lại!");
+        alert("Phiên đăng nhập hết hạn, vui lòng đăng nhập lại!");
+        navigateToAuth();
       } else {
-        alert("Không thể bắt đầu live");
+        alert("Không thể bắt đầu podcast live");
       }
     }
   };
+
   const handleJoinLive = (roomId: string) => {
     setLiveRoomId(roomId);
+    setIsLiveHost(false);
+    setLiveSessionTitle('Live podcast');
     setCurrentPage('live-detail');
+  };
+
+  const handleLeaveLive = async () => {
+    if (isLiveHost && liveRoomId) {
+      try {
+        await liveApi.endLive(liveRoomId);
+      } catch (err) {
+        console.error("Lỗi kết thúc live:", err);
+      }
+    }
+
+    setLiveRoomId(null);
+    setIsLiveHost(false);
+    setLiveSessionTitle('');
+    setCurrentPage('podcast');
   };
 
 
   if (currentHash.includes('/login-success')) return <LoginSuccess />;
   if (currentHash.includes('/verify')) return <VerifyPage />;
 
-  if (!token) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-slate-950">
-        <div className="w-full max-w-md p-4">
-          {authView === 'login' ? (
-            <LoginForm
-              onLoginSuccess={(token, user) => handleAuthSuccess(token, user)}
-              onSwitchToRegister={() => setAuthView('register')}
-            />
-          ) : (
-            <RegisterForm
-              onRegisterSuccess={(token, user) => handleAuthSuccess(token, user)}
-              onSwitchToLogin={() => setAuthView('login')}
-            />
-          )}
-        </div>
-      </div>
-    );
-  }
   const handleNextMedia = () => {
     if (playQueue.length > 0) {
       const nextIndex = (currentQueueIndex + 1) % playQueue.length;
@@ -176,7 +189,14 @@ export default function App() {
         onNavigate={(page) => { setCurrentPage(page); setIsSidebarOpen(false); }}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
-        onProfileClick={() => { setCurrentPage('profile'); setIsSidebarOpen(false); }}
+        onProfileClick={() => {
+          if (token) {
+            setCurrentPage('profile');
+          } else {
+            navigateToAuth();
+          }
+          setIsSidebarOpen(false);
+        }}
         onUpgradeClick={() => { setIsPremiumModalOpen(true); setIsSidebarOpen(false); }}
       />
 
@@ -198,6 +218,23 @@ export default function App() {
                 setCurrentPage('playlist-detail');
               }}
             />
+          )}
+          {currentPage === 'auth' && (
+            <div className="flex items-center justify-center min-h-full bg-slate-950/40 px-4 py-8">
+              <div className="w-full max-w-md">
+                {authView === 'login' ? (
+                  <LoginForm
+                    onLoginSuccess={(token, user) => handleAuthSuccess(token, user)}
+                    onSwitchToRegister={() => setAuthView('register')}
+                  />
+                ) : (
+                  <RegisterForm
+                    onRegisterSuccess={(token, user) => handleAuthSuccess(token, user)}
+                    onSwitchToLogin={() => setAuthView('login')}
+                  />
+                )}
+              </div>
+            </div>
           )}
           {/* TRANG TÌM KIẾM */}
           {currentPage === 'search' && <SearchPage searchQuery={searchQuery} onPlaySong={handlePlaySong} />}
@@ -222,12 +259,21 @@ export default function App() {
             />
           )}
           {/* CÁC TRANG KHÁC */}
-          {currentPage === 'profile' && <ProfilePage onLogout={handleLogout} />}
+          {currentPage === 'profile' && token && <ProfilePage onLogout={handleLogout} />}
           {currentPage === 'library' && <LibraryPage onPlaySong={handlePlaySong} />}
           {currentPage === 'liked-songs' && <LikedSongsPage onPlaySong={handlePlaySong} />}
           {currentPage === 'recently-played' && <RecentlyPlayedPage onPlaySong={handlePlaySong} currentUserId={currentUserId} />}
           {currentPage === 'podcast' && (
-            <LiveSocial user={user} />
+            <PodcastPage
+              onJoinLiveRoom={(roomId, isHost) => {
+                if (isHost) {
+                  handleStartPodcast();
+                  return;
+                }
+
+                handleJoinLive(roomId);
+              }}
+            />
           )}
           {currentPage === 'artist-detail' && selectedArtist && (
             <ArtistPage artist={selectedArtist} onBack={() => setCurrentPage('home')} onPlaySong={handlePlaySong} />
@@ -236,26 +282,29 @@ export default function App() {
             <CreatePlaylistPage currentUserId={currentUserId} isAdmin={isAdmin} onBack={() => setCurrentPage('playlists')} onCreated={() => setCurrentPage('playlists')} />
           )}
           {currentPage === 'nowplaying' && (
-            <NowPlayingPage currentSong={currentSong} isPlaying={isPlaying} onTogglePlay={() => setIsPlaying(!isPlaying)} onPlaySong={handlePlaySong} currentTime={currentTime} />
+            <NowPlayingPage
+              currentSong={currentSong}
+              isPlaying={isPlaying}
+              onTogglePlay={() => {
+                if (!token) {
+                  navigateToAuth();
+                  return;
+                }
+                setIsPlaying(!isPlaying);
+              }}
+              onPlaySong={handlePlaySong}
+              currentTime={currentTime}
+            />
           )}
-          {currentPage === 'podcast' && (
-            <>
-              <button
-                onClick={() => setCurrentPage('live-detail')}
-                className="m-4 px-4 py-2 bg-red-500 rounded"
-              >
-                Bắt đầu live
-              </button>
-
-              <LiveFeed onJoin={handleJoinLive} />
-            </>
-          )}
-
-          {currentPage === 'live-detail' && (
-            <LiveHostPage
-              userId={user.id.toString()}
-              userName={user.username}
-              onEnd={() => setCurrentPage('podcast')}
+          {currentPage === 'live-detail' && liveRoomId && (
+            <ZegoPlayer
+              roomId={liveRoomId}
+              userId={user?.id?.toString() || `guest-${Date.now()}`}
+              userName={user?.username || `Guest ${Math.floor(Math.random() * 1000)}`}
+              isHost={isLiveHost}
+              liveTitle={liveSessionTitle}
+              mode="podcast"
+              onLeave={handleLeaveLive}
             />
           )}
 
@@ -275,7 +324,13 @@ export default function App() {
         <MusicPlayer
           currentSong={currentSong}
           isPlaying={isPlaying}
-          onTogglePlay={() => setIsPlaying(!isPlaying)}
+          onTogglePlay={() => {
+            if (!token) {
+              navigateToAuth();
+              return;
+            }
+            setIsPlaying(!isPlaying);
+          }}
           onClickPlayer={() => currentSong && setCurrentPage('nowplaying')}
           onNextSong={() => {
             const next = (currentQueueIndex + 1) % playQueue.length;

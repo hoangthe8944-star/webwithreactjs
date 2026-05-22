@@ -1,7 +1,7 @@
 import { Home, Library, ListMusic, Search, Heart, Clock, User, Crown, Mic } from 'lucide-react';
 
 interface SidebarProps {
-  currentPage: 'home' | 'library' | 'playlists' | 'search' | 'nowplaying' | 'profile' | 'create-playlist' | 'liked-songs' | 'recently-played' | 'podcast' | 'playlist-detail' | 'artist-detail' | 'live-detail';
+  currentPage: 'home' | 'library' | 'playlists' | 'search' | 'nowplaying' | 'profile' | 'create-playlist' | 'liked-songs' | 'recently-played' | 'podcast' | 'playlist-detail' | 'artist-detail' | 'live-detail' | 'auth';
   onNavigate: (page: 'home' | 'library' | 'playlists' | 'search' | 'nowplaying' | 'profile' | 'create-playlist' | 'liked-songs' | 'recently-played' | 'podcast' | 'playlist-detail' | 'artist-detail') => void;
   isOpen: boolean;
   onClose: () => void;
