@@ -1,7 +1,8 @@
 import axios from "axios";
+import { BASE_URL } from "./apiconfig";
 
 const api = axios.create({
-  baseURL: "http://localhost:8081/api/live"
+  baseURL: `${BASE_URL}/api/live`
 });
 
 // Tự động gắn JWT vào mọi request

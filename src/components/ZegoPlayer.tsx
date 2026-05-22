@@ -21,28 +21,47 @@ export default function ZegoPlayer({
   mode = "live",
   liveTitle,
 }: Props) {
-  const ref = useRef<HTMLDivElement>(null);
-  const zpRef = useRef<any>(null);
-  const joined = useRef(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const zegoRef = useRef<any>(null);
+  const joinedRef = useRef(false);
+  const destroyedRef = useRef(false);
+  const leaveNotifiedRef = useRef(false);
 
   const appID = 2070696777;
   const serverSecret = "b3095e133cdf7601aafd2288c61dbb1a";
   const isPodcastMode = mode === "podcast";
 
   useEffect(() => {
-    if (joined.current) return;
+    if (joinedRef.current) return;
 
-    const handleCleanup = () => {
-      if (zpRef.current) {
-        zpRef.current.destroy();
-        zpRef.current = null;
-      }
-      joined.current = false;
+    let cancelled = false;
+
+    const notifyLeaveOnce = () => {
+      if (leaveNotifiedRef.current) return;
+      leaveNotifiedRef.current = true;
       onLeave();
     };
 
-    const join = async () => {
+    const destroyOnce = () => {
+      if (destroyedRef.current || !zegoRef.current) return;
+
+      destroyedRef.current = true;
+
       try {
+        zegoRef.current.destroy();
+      } catch (error) {
+        console.error("Zego destroy error:", error);
+      } finally {
+        zegoRef.current = null;
+      }
+    };
+
+    const joinRoom = async () => {
+      try {
+        if (!containerRef.current) {
+          throw new Error("Khong tim thay container de khoi tao phong live.");
+        }
+
         const kitToken = ZegoUIKitPrebuilt.generateKitTokenForTest(
           appID,
           serverSecret,
@@ -51,12 +70,22 @@ export default function ZegoPlayer({
           userName
         );
 
-        const zp = ZegoUIKitPrebuilt.create(kitToken);
-        zpRef.current = zp;
-        joined.current = true;
+        const zegoInstance = ZegoUIKitPrebuilt.create(kitToken);
 
-        zp.joinRoom({
-          container: ref.current!,
+        if (cancelled) {
+          try {
+            zegoInstance.destroy();
+          } catch {}
+          return;
+        }
+
+        zegoRef.current = zegoInstance;
+        joinedRef.current = true;
+        destroyedRef.current = false;
+        leaveNotifiedRef.current = false;
+
+        zegoInstance.joinRoom({
+          container: containerRef.current,
           scenario: {
             mode: ZegoUIKitPrebuilt.LiveStreaming,
             config: {
@@ -68,21 +97,24 @@ export default function ZegoPlayer({
           turnOnMicrophoneWhenJoining: isHost,
           showUserList: true,
           showLeavingView: false,
-          onLeaveRoom: handleCleanup,
+          onLeaveRoom: () => {
+            joinedRef.current = false;
+            notifyLeaveOnce();
+          },
         });
-      } catch (err: any) {
-        console.error("Quá trình tham gia thất bại:", err);
-        alert("Lỗi Zego: " + err.message);
-        onLeave();
+      } catch (error: any) {
+        console.error("Qua trinh tham gia that bai:", error);
+        alert("Loi Zego: " + (error?.message || "Khong the tham gia phong live"));
+        notifyLeaveOnce();
       }
     };
 
-    join();
+    joinRoom();
 
     return () => {
-      if (zpRef.current) {
-        zpRef.current.destroy();
-      }
+      cancelled = true;
+      joinedRef.current = false;
+      destroyOnce();
     };
   }, [appID, isHost, onLeave, roomId, userId, userName]);
 
@@ -96,17 +128,17 @@ export default function ZegoPlayer({
             <div>
               <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.28em] text-rose-200">
                 <Radio className="h-4 w-4" />
-                {isPodcastMode ? "Phòng podcast live" : "Phòng live"}
+                {isPodcastMode ? "Phong podcast live" : "Phong live"}
               </div>
 
               <h1 className="mt-4 text-2xl font-black leading-tight text-white">
-                {liveTitle || `${userName} đang phát trực tiếp`}
+                {liveTitle || `${userName} dang phat truc tiep`}
               </h1>
 
               <p className="mt-3 text-sm leading-6 text-slate-300">
                 {isHost
-                  ? "Bạn đang ở chế độ host. Micro sẽ được ưu tiên để bắt đầu buổi nói chuyện."
-                  : "Bạn đang nghe với vai trò khán giả. Có thể theo dõi room mà không cần bật camera."}
+                  ? "Ban dang o che do host. Micro se duoc uu tien de bat dau buoi noi chuyen."
+                  : "Ban dang nghe voi vai tro khan gia. Co the theo doi room ma khong can bat camera."}
               </p>
 
               <div className="mt-6 grid gap-3">
@@ -116,9 +148,9 @@ export default function ZegoPlayer({
                       {isHost ? <Mic className="h-5 w-5 text-white" /> : <Headphones className="h-5 w-5 text-white" />}
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-white">{isHost ? "Chế độ Host" : "Chế độ Audience"}</p>
+                      <p className="text-sm font-semibold text-white">{isHost ? "Che do Host" : "Che do Audience"}</p>
                       <p className="text-xs text-slate-400">
-                        {isHost ? "Micro bật khi vào phòng" : "Nghe trực tiếp từ phòng live"}
+                        {isHost ? "Micro bat khi vao phong" : "Nghe truc tiep tu phong live"}
                       </p>
                     </div>
                   </div>
@@ -130,8 +162,8 @@ export default function ZegoPlayer({
                       <Waves className="h-5 w-5" />
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-white">Ưu tiên âm thanh</p>
-                      <p className="text-xs text-slate-400">Camera tắt mặc định để tập trung vào âm thanh</p>
+                      <p className="text-sm font-semibold text-white">Uu tien am thanh</p>
+                      <p className="text-xs text-slate-400">Camera tat mac dinh de tap trung vao am thanh</p>
                     </div>
                   </div>
                 </div>
@@ -142,7 +174,7 @@ export default function ZegoPlayer({
                       <Users className="h-5 w-5" />
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-white">Phòng</p>
+                      <p className="text-sm font-semibold text-white">Phong</p>
                       <p className="text-xs text-slate-400 break-all">{roomId}</p>
                     </div>
                   </div>
@@ -151,14 +183,11 @@ export default function ZegoPlayer({
             </div>
 
             <button
-              onClick={() => {
-                if (zpRef.current) zpRef.current.destroy();
-                onLeave();
-              }}
+              onClick={onLeave}
               className="mt-6 inline-flex items-center justify-center gap-2 rounded-full bg-white px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-slate-200"
             >
               <X className="h-4 w-4" />
-              {isPodcastMode ? "Thoát podcast" : "Thoát live"}
+              {isPodcastMode ? "Thoat podcast" : "Thoat live"}
             </button>
           </aside>
 
@@ -170,20 +199,23 @@ export default function ZegoPlayer({
                     <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-75" />
                     <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-rose-400" />
                   </span>
-                  Đang lên sóng
+                  Dang len song
                 </div>
                 <h2 className="mt-1 text-lg font-semibold text-white">
-                  {isPodcastMode ? "Phòng podcast trực tiếp" : "Phòng live"}
+                  {isPodcastMode ? "Phong podcast truc tiep" : "Phong live"}
                 </h2>
               </div>
 
               <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-slate-300">
-                {isHost ? "Bạn đang điều khiển phòng" : "Bạn đang theo dõi room"}
+                {isHost ? "Ban dang dieu khien phong" : "Ban dang theo doi room"}
               </div>
             </div>
 
             <div className="relative flex-1 p-2 sm:p-3">
-              <div ref={ref} className="zego-room-shell h-full min-h-[58vh] overflow-hidden rounded-[26px] border border-white/8 bg-black/30" />
+              <div
+                ref={containerRef}
+                className="zego-room-shell h-full min-h-[58vh] overflow-hidden rounded-[26px] border border-white/8 bg-black/30"
+              />
             </div>
           </section>
         </div>
