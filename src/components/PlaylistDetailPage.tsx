@@ -19,9 +19,10 @@ interface PlaylistDetailPageProps {
     coverImage?: string | null; // Đổi từ cover thành coverImage
     songCount?: number;
     updatedAt?: string | null;
+    coverImageUrl?: string | null; // Thêm trường coverImageUrl nếu cần
   };
   onBack: () => void;
-  onPlaySong: (song: Song) => void;
+  onPlaySong: (song: Song, contextPlaylist: Song[]) => void;
 }
 
 export function PlaylistDetailPage({ playlist, onBack, onPlaySong }: PlaylistDetailPageProps) {
@@ -90,7 +91,7 @@ export function PlaylistDetailPage({ playlist, onBack, onPlaySong }: PlaylistDet
           size="icon" 
           disabled={songs.length === 0}
           className="w-14 h-14 rounded-full bg-cyan-500 hover:bg-cyan-400 text-black shadow-lg shadow-cyan-500/20 transition-transform hover:scale-105"
-          onClick={() => songs.length > 0 && onPlaySong(songs[0])}
+          onClick={() => songs.length > 0 && onPlaySong(songs[0], songs)}
         >
           <Play className="w-6 h-6 fill-current ml-1" />
         </Button>
@@ -117,7 +118,7 @@ export function PlaylistDetailPage({ playlist, onBack, onPlaySong }: PlaylistDet
                   key={song.id}
                   onMouseEnter={() => setHoveredSong(song.id)}
                   onMouseLeave={() => setHoveredSong(null)}
-                  onClick={() => onPlaySong(song)}
+                  onClick={() => onPlaySong(song, songs)}
                   className="group grid grid-cols-[auto_1fr_auto] md:grid-cols-[auto_2fr_1fr_auto] gap-4 p-3 items-center hover:bg-white/10 transition-colors cursor-pointer"
                 >
                   <div className="w-8 text-center flex justify-center text-white/70 group-hover:text-white">
@@ -131,7 +132,7 @@ export function PlaylistDetailPage({ playlist, onBack, onPlaySong }: PlaylistDet
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="w-10 h-10 rounded overflow-hidden flex-shrink-0">
                       {/* ✅ ĐÚNG: Link ảnh xịn từ Spotify, không còn bị 404 từ ID */}
-                      <img src={song.coverUrl} alt={song.title} className="w-full h-full object-cover" />
+                      <img src={song.coverImageUrl} alt={song.title} className="w-full h-full object-cover" />
                     </div>
                     <div className="min-w-0">
                       <div className={`font-medium truncate ${hoveredSong === song.id ? 'text-cyan-400' : 'text-white'}`}>

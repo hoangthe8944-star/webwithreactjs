@@ -51,6 +51,7 @@ export function NowPlaying({
   
   // ✅ BƯỚC 3: THÊM STATE NỘI BỘ CHO CÁC TÍNH NĂNG TƯƠNG TÁC
   const [isLiked, setIsLiked] = useState(false);
+  const isAd = currentSong?.title.startsWith("[Quảng cáo]") || currentSong?.albumName === "Quảng cáo tài trợ";
   
   // State để quản lý danh sách "Tiếp theo" một cách độc lập
   const [upNextSongs, setUpNextSongs] = useState<Song[]>([]);
@@ -129,8 +130,8 @@ export function NowPlaying({
             <h1 className="text-white text-3xl font-bold truncate mb-2">{currentSong.title}</h1>
             <p className="text-white/70 text-lg">{currentSong.artistName}</p>
           </div>
-          <Button variant="ghost" size="icon" onClick={handleToggleLike} className={`flex-shrink-0 transition-colors ${isLiked ? 'text-cyan-400' : 'text-white/70 hover:text-white'}`}>
-            <Heart className="w-6 h-6" fill={isLiked ? 'currentColor' : 'none'} />
+          <Button variant="ghost" size="icon" onClick={() => !isAd && handleToggleLike()} disabled={isAd} className={`flex-shrink-0 transition-colors ${isLiked && !isAd ? 'text-cyan-400' : 'text-white/70 hover:text-white'} ${isAd ? 'opacity-30 cursor-not-allowed' : ''}`}>
+            <Heart className="w-6 h-6" fill={isLiked && !isAd ? 'currentColor' : 'none'} />
           </Button>
         </div>
 
@@ -142,7 +143,8 @@ export function NowPlaying({
             max={duration || 100}
             value={currentTime}
             onChange={handleSeek}
-            className="w-full h-1.5 bg-white/20 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white"
+            disabled={isAd}
+            className={`w-full h-1.5 bg-white/20 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white ${isAd ? 'opacity-50 pointer-events-none' : ''}`}
           />
           <div className="flex justify-between text-xs text-white/60">
             <span>{formatTime(currentTime)}</span>
@@ -152,11 +154,11 @@ export function NowPlaying({
         
         {/* Playback Controls */}
         <div className="flex items-center justify-center gap-6 mt-4">
-          <Button variant="ghost" size="icon" onClick={onPrevSong} className="text-white/80 hover:text-white scale-110"><SkipBack className="w-7 h-7" fill="currentColor" /></Button>
+          <Button variant="ghost" size="icon" onClick={onPrevSong} disabled={isAd} className={`text-white/80 hover:text-white scale-110 ${isAd ? 'opacity-30 cursor-not-allowed pointer-events-none' : ''}`}><SkipBack className="w-7 h-7" fill="currentColor" /></Button>
           <Button onClick={onTogglePlay} className="w-16 h-16 rounded-full bg-white text-black hover:scale-105 transition-transform">
             {isPlaying ? <Pause className="w-8 h-8" fill="currentColor" /> : <Play className="w-8 h-8 ml-1" fill="currentColor" />}
           </Button>
-          <Button variant="ghost" size="icon" onClick={onNextSong} className="text-white/80 hover:text-white scale-110"><SkipForward className="w-7 h-7" fill="currentColor" /></Button>
+          <Button variant="ghost" size="icon" onClick={onNextSong} disabled={isAd} className={`text-white/80 hover:text-white scale-110 ${isAd ? 'opacity-30 cursor-not-allowed pointer-events-none' : ''}`}><SkipForward className="w-7 h-7" fill="currentColor" /></Button>
         </div>
       </div>
 
@@ -169,8 +171,9 @@ export function NowPlaying({
               upNextSongs.map((song) => (
                 <button
                   key={song.id}
-                  onClick={() => onPlaySong(song, upNextSongs)}
-                  className={`w-full flex items-center gap-3 p-3 rounded-lg hover:bg-white/5 transition-colors ${song.id === currentSong.id ? "bg-white/10" : ""}`}
+                  onClick={() => !isAd && onPlaySong(song, upNextSongs)}
+                  disabled={isAd}
+                  className={`w-full flex items-center gap-3 p-3 rounded-lg hover:bg-white/5 transition-colors ${song.id === currentSong.id ? "bg-white/10" : ""} ${isAd ? 'opacity-30 cursor-not-allowed pointer-events-none' : ''}`}
                 >
                   <div className="w-12 h-12 rounded-md overflow-hidden flex-shrink-0"><ImageWithFallback src={song.coverUrl} alt={song.title} className="w-full h-full object-cover" /></div>
                   <div className="flex-1 min-w-0 text-left">

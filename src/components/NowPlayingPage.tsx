@@ -41,6 +41,8 @@ interface NowPlayingPageProps {
   currentTime: number;
   onPlaySong: (song: Song, playlist: Song[]) => void;
   onTogglePlay: () => void;
+  isPremium?: boolean;
+  premiumStatus?: any;
 }
 
 /* ================= COMPONENT ================= */
@@ -74,15 +76,16 @@ export function NowPlayingPage({
           Math.floor(currentSong.duration / 1000)
         );
 
+        const data = res.data as any;
         const text =
-          res.data.plainLyrics ||
-          res.data.syncedLyrics ||
+          data.plainLyrics ||
+          data.syncedLyrics ||
           'Chưa có lời bài hát';
 
         setLyrics(
           text
             .split('\n')
-            .map(l => l.trim())
+            .map((l: string) => l.trim())
             .filter(Boolean)
         );
       } catch {

@@ -1,35 +1,37 @@
 import { Play } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import type { Artist } from '../../api/artistApi';
-
-// API
-import type { Song, HistoryItem } from '../../api/apiclient';
-import {
-  getTrendingSongs,
-  getUserHistory,
-  getAllPublicSongs // ✅ dùng API này để random
-} from '../../api/apiclient';
-
-import { getPublicPlaylists } from '../../api/playlistapi';
-import { getAllArtists } from '../../api/artistApi';
+import type { Song } from '../../api/apiclient';
 import PlaylistCover from './PlaylistCover';
+import {
+  useTrendingSongs,
+  useAllArtists,
+  usePublicPlaylists,
+  useAllPublicSongs,
+  useUserHistory
+} from '../hooks/useMusicQueries';
 
 interface HomePageProps {
   onPlaySong: (song: Song, contextPlaylist: Song[]) => void;
   onArtistClick?: (artist: Artist) => void;
   onPlaylistClick?: (playlist: any) => void;
+  onGenreClick?: (genreName: string, category?: string) => void;
 }
 
-export function HomePage({ onPlaySong, onArtistClick, onPlaylistClick }: HomePageProps) {
-  const [recentlyPlayed, setRecentlyPlayed] = useState<Song[]>([]);
-  const [recommendedSongs, setRecommendedSongs] = useState<Song[]>([]);
-  const [featuredArtists, setFeaturedArtists] = useState<Artist[]>([]);
-  const [featuredPlaylists, setFeaturedPlaylists] = useState<any[]>([]);
+import { queryClient } from '../lib/queryClient';
 
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+export function HomePage({ onPlaySong, onArtistClick, onPlaylistClick, onGenreClick }: HomePageProps) {
   const [greeting, setGreeting] = useState('Chào buổi tối');
+  const [selectedCategory, setSelectedCategory] = useState<any>(null);
+
+  // ================= REFETCH FRESH DATA ON MOUNT =================
+  useEffect(() => {
+    queryClient.invalidateQueries({ queryKey: ['songs'] });
+    queryClient.invalidateQueries({ queryKey: ['artists'] });
+    queryClient.invalidateQueries({ queryKey: ['playlists'] });
+    queryClient.invalidateQueries({ queryKey: ['user-history'] });
+  }, []);
 
   // ================= GREETING =================
   useEffect(() => {
@@ -39,89 +41,81 @@ export function HomePage({ onPlaySong, onArtistClick, onPlaylistClick }: HomePag
     else setGreeting('Chào buổi tối');
   }, []);
 
-  // ================= RANDOM HELPER =================
-  const getRandomSongs = (songs: Song[], count: number) => {
-    return [...songs].sort(() => 0.5 - Math.random()).slice(0, count);
-  };
+  const userId = localStorage.getItem('userId');
 
-  // ================= FETCH DATA =================
-  useEffect(() => {
-    const fetchHomePageData = async () => {
-      setLoading(true);
-      setError(null);
+  // ================= REACT QUERY CUSTOM HOOKS =================
+  const { data: trendingData, isLoading: isLoadingTrending, error: errorTrending } = useTrendingSongs(18);
+  const { data: artistsData, isLoading: isLoadingArtists } = useAllArtists();
+  const { data: playlistsData, isLoading: isLoadingPlaylists } = usePublicPlaylists();
+  const { data: allPublicSongsData, isLoading: isLoadingAllSongs } = useAllPublicSongs();
+  const { data: recentHistoryData, isLoading: isLoadingRecent } = useUserHistory(userId);
 
-      try {
-        const userId = localStorage.getItem('userId');
+  // ================= MEMOIZED DATA PROCESSING =================
+  const recentlyPlayed = useMemo(() => {
+    if (recentHistoryData && Array.isArray(recentHistoryData)) {
+      return recentHistoryData.map((item: any) => item.songDetails).filter(Boolean).slice(0, 6);
+    }
+    if (trendingData && Array.isArray(trendingData)) {
+      return trendingData.slice(0, 6);
+    }
+    return [];
+  }, [recentHistoryData, trendingData]);
 
-        const [
-          recentResult,
-          trendingResult,
-          artistResult,
-          playlistResult,
-          allSongsResult
-        ] = await Promise.allSettled([
-          userId ? getUserHistory(userId) : Promise.reject('No User ID'),
-          getTrendingSongs(18),
-          getAllArtists(),
-          getPublicPlaylists(),
-          getAllPublicSongs() // ✅ lấy toàn bộ bài hát
-        ]);
-
-        // -------- TRENDING --------
-        let trendingSongs: Song[] = [];
-        if (trendingResult.status === 'fulfilled') {
-          trendingSongs =
-            (trendingResult.value as any).data || trendingResult.value;
+  const recommendedSongs = useMemo(() => {
+    if (!allPublicSongsData || !Array.isArray(allPublicSongsData) || allPublicSongsData.length === 0) return [];
+    const seen = new Set<string>();
+    const uniqueSongs: Song[] = [];
+    for (const song of allPublicSongsData) {
+      if (song && song.title) {
+        const normalized = song.title.toLowerCase().trim();
+        if (!seen.has(normalized)) {
+          seen.add(normalized);
+          uniqueSongs.push(song);
         }
-
-        // -------- RECENTLY PLAYED --------
-        if (recentResult.status === 'fulfilled') {
-          const recentData =
-            (recentResult.value as any).data || recentResult.value;
-
-          const songs = recentData
-            .map((item: HistoryItem) => item.songDetails)
-            .filter(Boolean);
-
-          setRecentlyPlayed(songs.slice(0, 6));
-        } else {
-          setRecentlyPlayed(trendingSongs.slice(0, 6));
-        }
-
-        // -------- ARTISTS --------
-        if (artistResult.status === 'fulfilled') {
-          const artistData =
-            (artistResult.value as any).data || artistResult.value;
-
-          setFeaturedArtists(artistData.slice(0, 5));
-        }
-
-        // -------- PLAYLISTS --------
-        if (playlistResult.status === 'fulfilled') {
-          const playlistData =
-            (playlistResult.value as any).data || playlistResult.value;
-
-          setFeaturedPlaylists(playlistData.slice(0, 6));
-        }
-
-        // 🎯 -------- RECOMMENDED (RANDOM SONGS) --------
-        if (allSongsResult.status === 'fulfilled') {
-          const allSongs =
-            (allSongsResult.value as any).data || allSongsResult.value;
-
-          setRecommendedSongs(getRandomSongs(allSongs, 15));
-        }
-
-      } catch (err) {
-        console.error('Lỗi trang chủ:', err);
-        setError('Không thể tải dữ liệu.');
-      } finally {
-        setLoading(false);
       }
-    };
+    }
+    return [...uniqueSongs].sort(() => 0.5 - Math.random()).slice(0, 15);
+  }, [allPublicSongsData]);
 
-    fetchHomePageData();
-  }, []);
+  const featuredArtists = useMemo(() => {
+    if (!artistsData || !Array.isArray(artistsData)) return [];
+    const seen = new Set<string>();
+    const uniqueArtists: Artist[] = [];
+    for (const artist of artistsData) {
+      if (artist && artist.name) {
+        const normalizedName = artist.name.toLowerCase().trim();
+        if (!seen.has(normalizedName)) {
+          seen.add(normalizedName);
+          uniqueArtists.push(artist);
+        }
+      }
+    }
+    return uniqueArtists.slice(0, 5);
+  }, [artistsData]);
+
+  const featuredPlaylists = useMemo(() => {
+    if (!playlistsData || !Array.isArray(playlistsData)) return [];
+    return playlistsData.slice(0, 6);
+  }, [playlistsData]);
+
+  const genres = useMemo(() => {
+    if (!artistsData || !Array.isArray(artistsData)) return [];
+    const allGenres = new Set<string>();
+    artistsData.forEach((art: any) => {
+      if (art.genres && Array.isArray(art.genres)) {
+        art.genres.forEach((g: string) => {
+          if (g && g.trim()) {
+            const normalized = g.trim().split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+            allGenres.add(normalized);
+          }
+        });
+      }
+    });
+    return Array.from(allGenres).slice(0, 8);
+  }, [artistsData]);
+
+  const loading = isLoadingTrending || isLoadingArtists || isLoadingPlaylists || isLoadingAllSongs || (userId ? isLoadingRecent : false);
+  const error = errorTrending ? 'Không thể tải dữ liệu trang chủ.' : null;
 
   // ================= UTILS =================
   const formatDuration = (seconds: number) => {
@@ -161,6 +155,79 @@ export function HomePage({ onPlaySong, onArtistClick, onPlaylistClick }: HomePag
     </div>
   );
 
+  const getArtistRecommendationSections = () => {
+    if (featuredArtists.length === 0) return [];
+    
+    // Lấy tối đa 3 nghệ sĩ làm gốc
+    const baseArtists = featuredArtists.slice(0, 3);
+    
+    return baseArtists.map((artist, idx) => {
+      // Tìm các nghệ sĩ khác để đề xuất (loại trừ nghệ sĩ hiện tại)
+      const otherArtists = featuredArtists.filter(a => a.id !== artist.id).slice(0, 3);
+      
+      // Lấy 2 playlist thực tế cho mỗi section
+      const playlistOffset = idx * 2;
+      const sectionPlaylists = featuredPlaylists.slice(playlistOffset, playlistOffset + 2);
+      
+      // Tạo danh sách 6 item
+      const items: any[] = [];
+      
+      // 1. Item Radio của nghệ sĩ đó (Square)
+      const otherNames = otherArtists.map(a => a.name).join(', ');
+      items.push({
+        type: 'radio',
+        title: `${artist.name} Radio`,
+        image: (artist as any).avatarUrl || (artist as any).avatar || (artist as any).imageUrl || "https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=300",
+        desc: otherNames ? `Với ${otherNames}...` : "Tuyển tập các ca khúc được yêu thích",
+        raw: artist
+      });
+      
+      // 2. Các item Playlist (Square)
+      sectionPlaylists.forEach(pl => {
+        items.push({
+          type: 'playlist',
+          title: pl.name,
+          image: pl.coverImage || "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=300",
+          desc: pl.description || `Playlist nổi bật`,
+          raw: pl
+        });
+      });
+      
+      // 3. Các item Nghệ sĩ liên quan (Round)
+      otherArtists.forEach(art => {
+        items.push({
+          type: 'artist',
+          title: art.name,
+          image: (art as any).avatarUrl || (art as any).avatar || (art as any).imageUrl || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150",
+          desc: "Nghệ sĩ",
+          raw: art
+        });
+      });
+      
+      // Nếu chưa đủ 6 items, lấp đầy bằng các bài hát đề xuất thực tế (Square)
+      const needed = 6 - items.length;
+      if (needed > 0) {
+        const padSongs = recommendedSongs.slice(idx * 2, idx * 2 + needed);
+        padSongs.forEach(song => {
+          items.push({
+            type: 'song',
+            title: song.title,
+            image: song.coverUrl || (song as any).coverImageUrl || "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=300",
+            desc: song.artistName,
+            raw: song
+          });
+        });
+      }
+      
+      return {
+        artistName: artist.name,
+        artistAvatar: (artist as any).avatarUrl || (artist as any).avatar || (artist as any).imageUrl || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150",
+        items: items.slice(0, 6),
+        rawArtist: artist
+      };
+    });
+  };
+
   // ================= JSX (GIỮ NGUYÊN) =================
   return (
     <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-6 sm:space-y-8">
@@ -174,6 +241,191 @@ export function HomePage({ onPlaySong, onArtistClick, onPlaylistClick }: HomePag
           {error}
         </p>
       )}
+
+      {/* Featured Hero Banner */}
+      {!loading && recommendedSongs.length > 0 && (
+        <div className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-blue-950 via-cyan-900 to-indigo-950 border border-white/10 p-6 md:p-8 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-6 hover:border-cyan-500/30 transition-all duration-300">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(34,211,238,0.15),transparent)] pointer-events-none" />
+          <div className="relative z-10 max-w-xl">
+            <span className="px-3.5 py-1 bg-cyan-500/20 text-cyan-400 border border-cyan-500/20 rounded-full text-xs font-bold uppercase tracking-wider">
+              Nổi bật trong tuần
+            </span>
+            <h1 className="text-3xl md:text-5xl font-black mt-4 mb-3 leading-tight tracking-tight text-white">
+              {recommendedSongs[0].title}
+            </h1>
+            <p className="text-slate-300 text-sm md:text-base mb-6">
+              Nghe bản phát hành nóng hổi nhất của {recommendedSongs[0].artistName} ngay hôm nay. Chỉ có trên MusicStream.
+            </p>
+            <div className="flex gap-4">
+              <button 
+                onClick={() => onPlaySong(recommendedSongs[0], recommendedSongs)}
+                className="px-6 py-3 bg-gradient-to-r from-cyan-400 to-blue-500 hover:scale-105 hover:shadow-lg hover:shadow-cyan-500/20 text-white font-bold rounded-full transition-all flex items-center gap-2 border-0 cursor-pointer"
+              >
+                <Play className="w-5 h-5 fill-white" /> Phát ngay
+              </button>
+              <button className="px-6 py-3 bg-white/5 hover:bg-white/10 text-white font-bold rounded-full border border-white/10 transition-all cursor-pointer">
+                Thêm vào thư viện
+              </button>
+            </div>
+          </div>
+          <div className="relative w-48 h-48 md:w-60 md:h-60 shrink-0 group cursor-pointer">
+            <ImageWithFallback
+              src={recommendedSongs[0].coverUrl}
+              alt={recommendedSongs[0].title}
+              className="w-full h-full object-cover rounded-2xl shadow-2xl group-hover:scale-105 transition-transform duration-500"
+            />
+            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl flex items-center justify-center">
+              <div className="w-14 h-14 rounded-full bg-cyan-500 flex items-center justify-center scale-75 group-hover:scale-100 transition-all duration-300">
+                <Play className="w-6 h-6 text-white ml-0.5 fill-white" />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Moods & Genres */}
+      <div>
+        <h3 className="mb-4 text-xl font-bold">Tâm trạng & Thể loại</h3>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          {(genres.length > 0 ? genres : ['Pop', 'Rock', 'Electronic', 'Hip Hop', 'Jazz', 'R&B', 'Classical', 'Country']).map((genre, index) => {
+            const gradients = [
+              'linear-gradient(135deg, #ec4899, #f43f5e)', // pink to rose
+              'linear-gradient(135deg, #a855f7, #6366f1)', // purple to indigo
+              'linear-gradient(135deg, #f59e0b, #ea580c)', // amber to orange
+              'linear-gradient(135deg, #14b8a6, #059669)', // teal to emerald
+              'linear-gradient(135deg, #06b6d4, #3b82f6)', // cyan to blue
+              'linear-gradient(135deg, #8b5cf6, #7c3aed)', // violet to purple
+              'linear-gradient(135deg, #ef4444, #ec4899)', // red to pink
+              'linear-gradient(135deg, #10b981, #0f766e)'  // emerald to teal
+            ];
+            const gradientStyle = { background: gradients[index % gradients.length] };
+
+            // Tìm các nghệ sĩ thuộc thể loại này
+            const genreArtists = (artistsData || []).filter((art: any) => {
+              if (art.genres && Array.isArray(art.genres)) {
+                return art.genres.map((g: string) => g.toLowerCase().trim()).includes(genre.toLowerCase().trim());
+              }
+              return false;
+            });
+            // Lấy ảnh nghệ sĩ ngẫu nhiên ổn định (tránh nhấp nháy khi render lại)
+            const getGenreHashIndex = (str: string, len: number) => {
+              let hash = 0;
+              for (let i = 0; i < str.length; i++) {
+                hash = str.charCodeAt(i) + ((hash << 5) - hash);
+              }
+              return Math.abs(hash) % len;
+            };
+            const artistImage = genreArtists.length > 0
+              ? (genreArtists[getGenreHashIndex(genre, genreArtists.length)].avatarUrl || 
+                 genreArtists[getGenreHashIndex(genre, genreArtists.length)].avatar || 
+                 (genreArtists[getGenreHashIndex(genre, genreArtists.length)] as any).imageUrl)
+              : null;
+
+            return (
+              <div
+                key={genre}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedCategory({ name: genre, id: genre });
+                }}
+                style={gradientStyle}
+                className="relative h-24 rounded-2xl p-4 overflow-hidden shadow-lg group hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer flex items-center justify-between"
+              >
+                <span className="font-extrabold text-lg text-white capitalize relative z-10">{genre}</span>
+                {artistImage && (
+                  <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white/20 shadow-md transform rotate-[15deg] translate-x-1 group-hover:rotate-[0deg] group-hover:scale-110 transition-all duration-300 flex-shrink-0 relative z-10">
+                    <img src={artistImage} alt={genre} className="w-full h-full object-cover" />
+                  </div>
+                )}
+                <div className="absolute -right-4 -bottom-4 w-16 h-16 bg-white/10 rounded-full blur-xl group-hover:scale-150 transition-all duration-500" />
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Genre Detail View */}
+      {selectedCategory && (
+        <div className="space-y-6 bg-black/40 p-6 rounded-2xl border border-white/10">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold text-white">Nghệ sĩ thể loại: {selectedCategory.name}</h2>
+            <button onClick={() => setSelectedCategory(null)} className="text-sm text-cyan-400 hover:text-white">Đóng</button>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
+            {(artistsData || []).filter((art: any) => 
+              art.genres?.map((g: string) => g.toLowerCase().trim()).includes(selectedCategory.name.toLowerCase().trim())
+            ).map((artist: any) => (
+              <div key={artist.id} onClick={() => onArtistClick?.(artist)} className="bg-white/5 p-4 rounded-lg hover:bg-white/10 transition-colors cursor-pointer">
+                <ImageWithFallback src={artist.avatarUrl || artist.avatar} alt={artist.name} className="w-full aspect-square rounded-full object-cover mb-4 shadow-lg" />
+                <h4 className="text-white font-bold text-center truncate">{artist.name}</h4>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 3 Similar Recommendation Sections */}
+      {!loading && !selectedCategory && getArtistRecommendationSections().map((section, secIdx) => (
+        <div key={secIdx} className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full overflow-hidden border border-white/10 shadow-md flex-shrink-0">
+                <ImageWithFallback src={section.artistAvatar} alt={section.artistName} className="w-full h-full object-cover" />
+              </div>
+              <div className="text-left">
+                <p className="text-xs text-slate-400 font-medium">Nội dung khác giống</p>
+                <h3 className="text-xl sm:text-2xl font-black text-white">{section.artistName}</h3>
+              </div>
+            </div>
+            <button 
+              onClick={() => onArtistClick?.(section.rawArtist)}
+              className="text-sm text-slate-400 hover:text-white font-bold transition-colors bg-transparent border-0 cursor-pointer"
+            >
+              Hiện tất cả
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            {section.items.map((item, itemIdx) => (
+              <div 
+                key={itemIdx}
+                onClick={() => {
+                  if (item.type === 'artist' || item.type === 'radio') {
+                    onArtistClick?.(item.raw);
+                  } else if (item.type === 'playlist') {
+                    onPlaylistClick?.(item.raw);
+                  } else if (item.type === 'song') {
+                    onPlaySong?.(item.raw, recommendedSongs);
+                  }
+                }}
+                className="bg-slate-900/30 backdrop-blur border border-white/5 p-4 rounded-2xl hover:bg-slate-800/40 transition-all cursor-pointer group"
+              >
+                <div className="relative mb-4">
+                  <div className={`aspect-square w-full overflow-hidden shadow-lg flex-shrink-0 ${item.type === 'artist' ? 'rounded-full' : 'rounded-xl'}`}>
+                    {item.type === 'playlist' ? (
+                      <PlaylistCover
+                        coverImage={item.raw?.coverImage}
+                        tracks={item.raw?.songDetails || []}
+                        name={item.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                    ) : (
+                      <ImageWithFallback src={item.image} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                    )}
+                  </div>
+                  {item.type !== 'artist' && (
+                    <div className="absolute bottom-2 right-2 w-10 h-10 rounded-full bg-cyan-500 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0 shadow-lg shadow-cyan-500/30">
+                      <Play className="w-5 h-5 text-white ml-0.5" fill="white" />
+                    </div>
+                  )}
+                </div>
+                <p className="font-bold text-sm sm:text-base text-white truncate mb-1">{item.title}</p>
+                <p className="text-xs text-slate-400 line-clamp-2">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
 
       {!loading &&
         recentlyPlayed.length > 0 &&
@@ -196,7 +448,7 @@ export function HomePage({ onPlaySong, onArtistClick, onPlaylistClick }: HomePag
             >
               <div className="relative w-32 h-32 sm:w-40 sm:h-40 rounded-full overflow-hidden shadow-2xl group-hover:scale-105 transition-transform duration-300">
                 <ImageWithFallback
-                  src={(artist as any).avatarUrl || (artist as any).avatar}
+                  src={(artist as any).avatarUrl || (artist as any).avatar || (artist as any).imageUrl}
                   alt={artist.name}
                   className="w-full h-full object-cover"
                 />

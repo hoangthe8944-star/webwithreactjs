@@ -5609,3 +5609,294 @@ html {
   border-radius: 26px !important;
   background: linear-gradient(180deg, rgba(2, 6, 23, 0.96) 0%, rgba(15, 23, 42, 0.88) 100%) !important;
 }
+
+/* ================= THEME STYLES ================= */
+
+/* Light Mode Overrides */
+html.theme-light, html.theme-light body {
+  background: #f8fafc !important;
+  background-image: none !important;
+  color: #0f172a !important;
+}
+
+html.theme-light div.h-screen.overflow-hidden {
+  background: #f1f5f9 !important;
+  background-image: none !important;
+  color: #0f172a !important;
+}
+
+/* Sidebar in Light Mode */
+html.theme-light aside {
+  background: #ffffff !important;
+  border-right-color: #cbd5e1 !important;
+}
+html.theme-light aside h1 {
+  background: linear-gradient(to right, #0284c7, #0369a1) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+html.theme-light aside button {
+  color: #334155 !important;
+}
+html.theme-light aside button:hover {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+html.theme-light aside button.bg-gradient-to-r {
+  background: #e0f2fe !important;
+  color: #0369a1 !important;
+  box-shadow: none !important;
+}
+html.theme-light aside h2 {
+  color: #475569 !important;
+}
+html.theme-light aside div.border-blue-700\/30 {
+  border-top-color: #e2e8f0 !important;
+}
+html.theme-light aside button.bg-blue-800\/30 {
+  background-color: #f1f5f9 !important;
+  color: #334155 !important;
+}
+html.theme-light aside button.bg-blue-800\/30:hover {
+  background-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+/* Header in Light Mode */
+html.theme-light header {
+  background: rgba(255, 255, 255, 0.8) !important;
+  backdrop-filter: blur(20px) !important;
+  border-bottom-color: #cbd5e1 !important;
+}
+html.theme-light header input {
+  background: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+html.theme-light header input::placeholder {
+  color: #64748b !important;
+}
+html.theme-light header svg {
+  color: #0284c7 !important;
+}
+html.theme-light header button {
+  background-color: #e2e8f0 !important;
+  color: #334155 !important;
+}
+html.theme-light header button:hover {
+  background-color: #cbd5e1 !important;
+}
+
+/* Music Player in Light Mode */
+html.theme-light div.fixed.bottom-0.left-0.right-0 {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  border-top: 1px solid #cbd5e1 !important;
+  color: #0f172a !important;
+}
+html.theme-light div.fixed.bottom-0.left-0.right-0 * {
+  color: #334155 !important;
+}
+html.theme-light div.fixed.bottom-0.left-0.right-0 button:hover {
+  color: #0f172a !important;
+}
+html.theme-light div.fixed.bottom-0.left-0.right-0 input[type="range"] {
+  accent-color: #0284c7 !important;
+}
+
+/* Main Content elements in Light Mode */
+html.theme-light main h1,
+html.theme-light main h2,
+html.theme-light main h3,
+html.theme-light main h4,
+html.theme-light main h5,
+html.theme-light main h6 {
+  color: #0f172a !important;
+}
+html.theme-light main p,
+html.theme-light main span,
+html.theme-light main li,
+html.theme-light main td,
+html.theme-light main th {
+  color: #334155 !important;
+}
+html.theme-light main .text-white,
+html.theme-light main .text-blue-200,
+html.theme-light main .text-slate-300,
+html.theme-light main .text-cyan-300,
+html.theme-light main .text-gray-300 {
+  color: #334155 !important;
+}
+html.theme-light main .text-cyan-400,
+html.theme-light main .text-blue-400 {
+  color: #0284c7 !important;
+}
+html.theme-light main .text-slate-400,
+html.theme-light main .text-gray-400 {
+  color: #64748b !important;
+}
+
+/* Profiles, Cards & Modals */
+html.theme-light main .bg-white\/5,
+html.theme-light main .bg-slate-900,
+html.theme-light main .bg-slate-950,
+html.theme-light main .bg-black\/40 {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #e2e8f0 !important;
+}
+html.theme-light main .border-white\/10,
+html.theme-light main .border-cyan-500\/30,
+html.theme-light main .border-cyan-500\/40,
+html.theme-light main .border-cyan-500\/50,
+html.theme-light main .border-cyan-500\/10 {
+  border-color: #cbd5e1 !important;
+}
+html.theme-light main button.bg-white\/5:hover {
+  background-color: #f1f5f9 !important;
+}
+html.theme-light main input,
+html.theme-light main textarea {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+/* Chatbox in Light Mode */
+html.theme-light .btb-ultra-window {
+  background: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1) !important;
+}
+html.theme-light .btb-ultra-header {
+  background: linear-gradient(90deg, #0284c7, #0369a1) !important;
+}
+html.theme-light .btb-ultra-messages-area {
+  background: #f8fafc !important;
+}
+html.theme-light .btb-ultra-msg-ai {
+  background: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+html.theme-light .btb-ultra-input-form {
+  background: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+}
+html.theme-light .btb-ultra-input-form input {
+  background: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+/* Dark Mode Overrides */
+html.theme-dark, html.theme-dark body {
+  background: #020617 !important;
+  background-image: none !important;
+  color: #f8fafc !important;
+}
+
+html.theme-dark div.h-screen.overflow-hidden {
+  background: #0f172a !important;
+  background-image: none !important;
+  color: #f8fafc !important;
+}
+
+/* Sidebar in Dark Mode */
+html.theme-dark aside {
+  background: #090d16 !important;
+  border-right-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Header in Dark Mode */
+html.theme-dark header {
+  background: #0b0f19 !important;
+  border-bottom-color: rgba(255, 255, 255, 0.05) !important;
+}
+html.theme-dark header input {
+  background: #1e293b !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Music Player in Dark Mode */
+html.theme-dark div.fixed.bottom-0.left-0.right-0 {
+  background-color: #0b0f19 !important;
+  border-top-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Cards & elements in Dark Mode */
+html.theme-dark main .bg-white\/5,
+html.theme-dark main .bg-slate-900,
+html.theme-dark main .bg-slate-950 {
+  background-color: #0b0f19 !important;
+  border-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Ensure category text remains white on cards */
+html.theme-light button.relative.aspect-square h3.text-white,
+html.theme-dark button.relative.aspect-square h3.text-white {
+  color: #ffffff !important;
+}
+
+/* Force dark text color context for dark wrappers inside light-mode main container */
+html.theme-light .dark h1,
+html.theme-light .dark h2,
+html.theme-light .dark h3,
+html.theme-light .dark h4,
+html.theme-light .dark h5,
+html.theme-light .dark h6 {
+  color: #ffffff !important;
+}
+
+html.theme-light .dark p,
+html.theme-light .dark span,
+html.theme-light .dark li,
+html.theme-light .dark td,
+html.theme-light .dark th,
+html.theme-light .dark div {
+  color: #cbd5e1 !important;
+}
+
+html.theme-light .dark button {
+  color: #ffffff !important;
+}
+
+/* Override utility colors inside .dark containers */
+html.theme-light .dark .text-white {
+  color: #ffffff !important;
+}
+html.theme-light .dark .text-white\/70 {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+html.theme-light .dark .text-white\/80 {
+  color: rgba(255, 255, 255, 0.8) !important;
+}
+html.theme-light .dark .text-transparent {
+  color: transparent !important;
+}
+html.theme-light .dark .text-slate-200 {
+  color: #e2e8f0 !important;
+}
+html.theme-light .dark .text-slate-300 {
+  color: #cbd5e1 !important;
+}
+html.theme-light .dark .text-slate-400 {
+  color: #94a3b8 !important;
+}
+html.theme-light .dark .text-slate-500 {
+  color: #64748b !important;
+}
+html.theme-light .dark .text-cyan-400 {
+  color: #22d3ee !important;
+}
+html.theme-light .dark .text-emerald-400 {
+  color: #34d399 !important;
+}
+html.theme-light .dark .text-red-400 {
+  color: #f87171 !important;
+}
+html.theme-light .dark .text-amber-400 {
+  color: #fbbf24 !important;
+}
+html.theme-light .dark .text-blue-500 {
+  color: #3b82f6 !important;
+}
+

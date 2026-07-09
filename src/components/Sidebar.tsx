@@ -1,15 +1,16 @@
 import { Home, Library, ListMusic, Search, Heart, Clock, User, Crown, Mic } from 'lucide-react';
 
 interface SidebarProps {
-  currentPage: 'home' | 'library' | 'playlists' | 'search' | 'nowplaying' | 'profile' | 'create-playlist' | 'liked-songs' | 'recently-played' | 'podcast' | 'playlist-detail' | 'artist-detail' | 'live-detail' | 'auth';
-  onNavigate: (page: 'home' | 'library' | 'playlists' | 'search' | 'nowplaying' | 'profile' | 'create-playlist' | 'liked-songs' | 'recently-played' | 'podcast' | 'playlist-detail' | 'artist-detail') => void;
+  currentPage: string;
+  onNavigate: (page: string) => void;
   isOpen: boolean;
   onClose: () => void;
   onProfileClick: () => void;
   onUpgradeClick?: () => void;
+  isPremium?: boolean;
 }
 
-export function Sidebar({ currentPage, onNavigate, isOpen, onClose, onProfileClick, onUpgradeClick }: SidebarProps) {
+export function Sidebar({ currentPage, onNavigate, isOpen, onClose, onProfileClick, onUpgradeClick, isPremium }: SidebarProps) {
   const menuItems = [
     { id: 'home' as const, label: 'Trang chủ', icon: Home },
     { id: 'search' as const, label: 'Tìm kiếm', icon: Search },

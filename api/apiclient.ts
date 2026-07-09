@@ -7,6 +7,47 @@ export const History_URL = `${BASE_URL}/api/songs`;
 export const LYRICS_URL = `${BASE_URL}/api/v1/lyrics`;
 export const HISTORY_URL = `${BASE_URL}/api/history`;
 
+// Response Interceptor to normalize image fields for Songs and Artists
+axios.interceptors.response.use((response) => {
+    const normalize = (obj: any) => {
+        if (obj && typeof obj === 'object') {
+            // Song normalization
+            if ('title' in obj || 'duration' in obj || 'coverUrl' in obj || 'coverImageUrl' in obj || 'streamUrl' in obj || 'audioUrl' in obj) {
+            const cover = obj.coverUrl || obj.coverImageUrl;
+            if (cover) {
+                obj.coverUrl = cover;
+                obj.coverImageUrl = cover;
+            }
+            // Prioritize audioUrl if present, otherwise use streamUrl
+            const audioSource = obj.audioUrl || obj.streamUrl;
+            if (audioSource) {
+                obj.streamUrl = audioSource; // Set streamUrl to the primary source
+                // obj.audioUrl = audioSource; // Removed redundant assignment
+            }
+        }
+            // Artist normalization
+            if ('name' in obj && ('avatarUrl' in obj || 'avatar' in obj || 'imageUrl' in obj)) {
+                const img = obj.avatarUrl || obj.avatar || obj.imageUrl;
+                obj.avatarUrl = img;
+                obj.avatar = img;
+                obj.imageUrl = img;
+            }
+            // Recursion
+            for (const key in obj) {
+                if (Array.isArray(obj[key])) {
+                    obj[key].forEach(normalize);
+                } else if (obj[key] && typeof obj[key] === 'object') {
+                    normalize(obj[key]);
+                }
+            }
+        }
+    };
+    normalize(response.data);
+    return response;
+}, (error) => {
+    return Promise.reject(error);
+});
+
 // --- CẤU HÌNH URL ---
 // const PUBLIC_URL = 'http://localhost:8081/api/public';
 // const History_URL = 'http://localhost:8081/api/songs';
@@ -24,8 +65,10 @@ export interface Song {
     artistName: string;
     albumName: string;
     coverUrl: string;
+    coverImageUrl?: string;
     duration: number;
     streamUrl: string;
+    audioUrl?: string; // Added audioUrl as suggested by user
     status: 'PENDING' | 'PUBLISHED' | 'REJECTED';
     viewCount: number;
     isExplicit: boolean;
@@ -38,9 +81,10 @@ export interface LyricsResponse {
     trackName: string;
     artistName: string;
     albumName: string;
-    duration: number;
-    plainLyrics: string;  // Lời bài hát dạng văn bản thuần
-    syncedLyrics: string; // Lời bài hát dạng [00:12.34] để chạy chữ
+  duration: number;
+  coverUrl: string;
+  audioUrl: string;
+  artistId: string;
 }
 
 export interface HistoryItem {
@@ -58,6 +102,17 @@ export interface Category {
     color: string;
     imageUrl: string;
 }
+
+export interface SearchResponse {
+    songs: Song[];
+    artists: any[];
+    playlists: any[];
+}
+
+export interface SearchSuggestResponse {
+    suggestions: string[];
+}
+
 // ====================================================
 // 2. API CALLS
 // ====================================================
@@ -77,10 +132,35 @@ export const getTrendingSongs = (limit: number = 10) => {
  * Tìm kiếm bài hát công khai
  */
 export const searchPublicSongs = (query: string) => {
-    // ✅ SỬA LỖI: Đổi tên tham số từ "query" thành "q" để khớp với backend
     return axios.get<Song[]>(`${PUBLIC_URL}/search?q=${encodeURIComponent(query)}`, {
         headers: {
             "ngrok-skip-browser-warning": "true"
+        }
+    });
+};
+
+/**
+ * Tìm kiếm tổng hợp (Bài hát, Nghệ sĩ, Playlist)
+ */
+export const searchAll = (query: string) => {
+    const token = sessionStorage.getItem("accessToken");
+    return axios.get<SearchResponse>(`${BASE_URL}/api/search?q=${encodeURIComponent(query)}`, {
+        headers: {
+            "ngrok-skip-browser-warning": "true",
+            "Authorization": token ? `Bearer ${token}` : ""
+        }
+    });
+};
+
+/**
+ * Gợi ý tìm kiếm
+ */
+export const getSearchSuggestions = (query: string) => {
+    const token = sessionStorage.getItem("accessToken");
+    return axios.get<SearchSuggestResponse>(`${BASE_URL}/api/search/suggest?q=${encodeURIComponent(query)}`, {
+        headers: {
+            "ngrok-skip-browser-warning": "true",
+            "Authorization": token ? `Bearer ${token}` : ""
         }
     });
 };
@@ -208,6 +288,46 @@ export const clearUserHistory = (userId: string) => {
 export const getAllCategories = () => {
     return axios.get<Category[]>(`${PUBLIC_URL}/categories`, {
         headers: {
+            "ngrok-skip-browser-warning": "true"
+        }
+    });
+};
+
+export const getSongsByCategory = (categoryId: string) => {
+    return axios.get<Song[]>(`${PUBLIC_URL}/songs/category/${categoryId}`, {
+        headers: {
+            "ngrok-skip-browser-warning": "true"
+        }
+    });
+};
+
+export interface PlaybackCheckRequest {
+    currentSongId?: string;
+    isPlaying: boolean;
+    songProgressSeconds: number;
+    songDurationSeconds: number;
+}
+
+export interface PlaybackDecisionResponse {
+    action: 'PLAY_SONG' | 'PLAY_AD';
+    ad?: {
+        id: string;
+        title: string;
+        partnerName: string;
+        mediaUrl?: string;
+        audioUrl?: string;
+        imageUrl?: string;
+        duration: number;
+    };
+    nextAdInSeconds: number;
+    reason?: string;
+}
+
+export const checkPlayback = (request: PlaybackCheckRequest) => {
+    const token = sessionStorage.getItem("accessToken");
+    return axios.post<PlaybackDecisionResponse>(`${BASE_URL}/api/playback/check`, request, {
+        headers: {
+            "Authorization": `Bearer ${token}`,
             "ngrok-skip-browser-warning": "true"
         }
     });

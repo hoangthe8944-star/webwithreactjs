@@ -9,7 +9,7 @@ export interface Artist {
   followerCount?: number;
   verified: boolean;
   bio?: string;
-
+  genres?: string[];
 }
 
 

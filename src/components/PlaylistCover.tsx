@@ -31,7 +31,7 @@ const PlaylistCover: React.FC<PlaylistCoverProps> = ({
         if (typeof input === 'string') {
             url = input;
         } else {
-            url = input.coverUrl || input.thumbnailUrl || "";
+            url = input.coverUrl || input.coverImageUrl || input.imageUrl || input.thumbnailUrl || "";
         }
 
         // Nếu là URL hợp lệ (có http)

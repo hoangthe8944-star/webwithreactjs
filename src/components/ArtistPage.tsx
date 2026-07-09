@@ -1,12 +1,17 @@
 import { Play, CheckCircle2, Heart, Share2, MoreHorizontal, Users, Disc, Music } from 'lucide-react';
 import { Button } from './ui/button';
+import { toast } from 'sonner';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { useState, useEffect } from 'react';
 import type { Song } from '../../api/apiclient';
+import { searchPublicSongs } from '../../api/apiclient';
+import followEndpoint from "../../api/followapi";
 
 // ✅ IMPORT CÁC HÀM TỪ FILE API MỚI
 import { getSongsByArtist, getAlbumsByArtist } from '../../api/artistApi';
 import type { Artist } from '../../api/artistApi';
+import followapi from '../../api/followapi';
+import { getCurrentUser } from "../../api/authapi";
 
 interface ArtistPageProps {
   artist: Artist;
@@ -16,12 +21,13 @@ interface ArtistPageProps {
 
 export function ArtistPage({ artist, onPlaySong, onBack }: ArtistPageProps) {
   const [isFollowing, setIsFollowing] = useState(false);
+  const currentUser = getCurrentUser();
+  const userId = currentUser?.id ?? "";
 
   // ✅ STATE DỮ LIỆU THẬT
   const [popularSongs, setPopularSongs] = useState<Song[]>([]);
   const [albums, setAlbums] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
@@ -34,6 +40,32 @@ export function ArtistPage({ artist, onPlaySong, onBack }: ArtistPageProps) {
     return count.toString();
   };
 
+  const handleFollow = async () => {
+    if (!userId) {
+      alert("Vui lòng đăng nhập");
+      return;
+    }
+
+    try {
+      if (isFollowing) {
+        await followEndpoint.unfollow(
+          userId,
+          artist.id,
+          "ARTIST"
+        );
+        setIsFollowing(false);
+      } else {
+        await followEndpoint.follow(
+          userId,
+          artist.id,
+          "ARTIST"
+        );
+        setIsFollowing(true);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
   // ✅ GỌI API KHI TRANG LOAD
   // Trong ArtistPage.tsx
 
@@ -51,10 +83,27 @@ export function ArtistPage({ artist, onPlaySong, onBack }: ArtistPageProps) {
         console.log("SONGS RAW =", songsRes.data);
         console.log("ALBUMS RAW =", albumsRes.data);
 
+        let songsList = Array.isArray(songsRes.data) ? songsRes.data : [];
+        const albumsList = Array.isArray(albumsRes.data) ? albumsRes.data : [];
 
-        // ✅ KIỂM TRA NẾU LÀ MẢNG THÌ MỚI SET, NẾU KHÔNG THÌ ĐỂ MẢNG RỖNG
-        setPopularSongs(Array.isArray(songsRes.data) ? songsRes.data : []);
-        setAlbums(Array.isArray(albumsRes.data) ? albumsRes.data : []);
+        if (songsList.length === 0 && artist.name) {
+          console.log("No songs found by artist ID, falling back to search by name:", artist.name);
+          const searchRes = await searchPublicSongs(artist.name);
+          if (searchRes && searchRes.data && Array.isArray(searchRes.data)) {
+            songsList = searchRes.data.filter((s: Song) => s.artistName.toLowerCase().trim() === artist.name.toLowerCase().trim());
+            if (songsList.length === 0) {
+              songsList = searchRes.data.slice(0, 10);
+            }
+          }
+        }
+
+        // Manual normalization to ensure streamUrl is populated
+        const normalizedSongs = songsList.map((song: any) => ({
+          ...song,
+          streamUrl: song.streamUrl ? song.streamUrl : song.audioUrl
+        }));
+        setPopularSongs(normalizedSongs);
+        setAlbums(albumsList);
 
       } catch (err) {
         console.error("Không thể tải dữ liệu nghệ sĩ:", err);
@@ -64,10 +113,23 @@ export function ArtistPage({ artist, onPlaySong, onBack }: ArtistPageProps) {
       } finally {
         setIsLoading(false);
       }
+      try {
+        if (userId && artist.id) {
+          const res = await followapi.isFollowing(
+            userId,
+            artist.id,
+            "ARTIST"
+          );
+
+          setIsFollowing(res.data);
+        }
+      } catch (err) {
+        console.error(err);
+      }
     };
     loadArtistData();
   }, [artist.id]);
-  const displayAvatar = artist.avatarUrl || "https://images.unsplash.com/photo-1493225255756-d9584f8606e9?q=80&w=200";
+  const displayAvatar = artist.avatarUrl || (artist as any).avatar || (artist as any).imageUrl || "https://images.unsplash.com/photo-1493225255756-d9584f8606e9?q=80&w=200";
   const displayCover = artist.coverImageUrl || displayAvatar;
 
   return (
@@ -96,8 +158,13 @@ export function ArtistPage({ artist, onPlaySong, onBack }: ArtistPageProps) {
             >
               <Play className="w-6 h-6 fill-current ml-1" />
             </Button>
-            <Button variant="outline" className={`h-10 border-white/30 text-white rounded-full px-6 font-semibold transition-all ${isFollowing ? 'border-cyan-500 text-cyan-400' : ''}`} onClick={() => setIsFollowing(!isFollowing)}>
-              {isFollowing ? 'Đang theo dõi' : 'Theo dõi'}
+            <Button
+              variant="outline"
+              className={`h-10 border-white/30 text-white rounded-full px-6 font-semibold transition-all ${isFollowing ? "border-cyan-500 text-cyan-400" : ""
+                }`}
+              onClick={handleFollow}
+            >
+              {isFollowing ? "Đang theo dõi" : "Theo dõi"}
             </Button>
             <Button variant="ghost" size="icon" className="text-white/70 hover:text-white rounded-full">
               <MoreHorizontal className="w-6 h-6" />
@@ -113,7 +180,20 @@ export function ArtistPage({ artist, onPlaySong, onBack }: ArtistPageProps) {
             <h2 className="text-2xl font-bold text-white mb-4">Phổ biến</h2>
             <div className="flex flex-col">
               {(Array.isArray(popularSongs) ? popularSongs : []).slice(0, 5).map((song, idx) => (
-                <div key={song.id} className="group grid grid-cols-[auto_1fr_auto] gap-4 p-2 rounded-md hover:bg-white/5 transition-colors cursor-pointer items-center" onClick={() => onPlaySong(song, popularSongs)}>
+                <button 
+                  key={song.id} 
+                  type="button" 
+                  className="group w-full grid grid-cols-[auto_1fr_auto] gap-4 p-2 rounded-md hover:bg-white/5 transition-colors cursor-pointer items-center text-left relative z-10" 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log("ArtistPage: Clicking song", song);
+                    if (!song.streamUrl) {
+                      toast.error(`Bài hát ${song.title} không có link stream!`);
+                    }
+                    onPlaySong(song, popularSongs);
+                  }}
+                >
                   <div className="w-8 text-center text-white/50 text-sm"><span className="group-hover:hidden">{idx + 1}</span><Play className="w-4 h-4 hidden group-hover:block mx-auto fill-current text-white" /></div>
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded overflow-hidden"><ImageWithFallback src={song.coverUrl} alt={song.title} className="w-full h-full object-cover" /></div>
@@ -126,7 +206,7 @@ export function ArtistPage({ artist, onPlaySong, onBack }: ArtistPageProps) {
                     <Heart className="w-4 h-4 opacity-0 group-hover:opacity-100 hover:text-cyan-400 transition-all" />
                     <span>{formatDuration(song.duration)}</span>
                   </div>
-                </div>
+                </button>
               ))}
             </div>
           </section>

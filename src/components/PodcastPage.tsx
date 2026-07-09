@@ -5,407 +5,831 @@ import {
   Headphones,
   Mic,
   Radio,
-  Signal,
-  Sparkles,
-  Users,
-  Waves
+  Play,
+  ArrowLeft,
+  Plus,
+  Trash2,
+  Edit3,
+  Layers,
+  X,
+  PlusCircle,
+  FileAudio,
+  Film
 } from 'lucide-react';
 import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import { Textarea } from './ui/textarea';
 import { ImageWithFallback } from './figma/ImageWithFallback';
-import axios from 'axios';
-import { BASE_URL } from '../../api/apiconfig';
+import { toast } from 'sonner';
 import { cn } from './lib/utils';
-
-interface Podcast {
-  id: string;
-  title: string;
-  host: string;
-  category: string;
-  cover: string;
-  description: string;
-  duration?: string;
-  date?: string;
-}
-
-interface LiveRoom {
-  roomId: string;
-  roomTitle?: string;
-  hostName?: string;
-}
+import type { Song } from '../../api/apiclient';
+import * as podcastApi from '../../api/podcastApi';
 
 interface PodcastPageProps {
+  currentUserId: string;
+  onPlaySong: (song: Song, contextPlaylist: Song[]) => void;
   onJoinLiveRoom: (roomId: string, isHost: boolean) => void;
 }
 
-export function PodcastPage({ onJoinLiveRoom }: PodcastPageProps) {
-  const [liveRooms, setLiveRooms] = useState<LiveRoom[]>([]);
+export function PodcastPage({ currentUserId, onPlaySong, onJoinLiveRoom }: PodcastPageProps) {
+  // Navigation & Tabs
+  const [activeTab, setActiveTab] = useState<'explore' | 'studio'>('explore');
+  const [selectedPodcast, setSelectedPodcast] = useState<podcastApi.Podcast | null>(null);
 
+  // Data states
+  const [podcasts, setPodcasts] = useState<podcastApi.Podcast[]>([]);
+  const [episodes, setEpisodes] = useState<podcastApi.Episode[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingEpisodes, setIsLoadingEpisodes] = useState(false);
+
+  // Modals / Forms
+  const [showPodcastModal, setShowPodcastModal] = useState(false);
+  const [editingPodcast, setEditingPodcast] = useState<podcastApi.Podcast | null>(null);
+  const [podcastTitle, setPodcastTitle] = useState('');
+  const [podcastDesc, setPodcastDesc] = useState('');
+  const [podcastCategories, setPodcastCategories] = useState('');
+  const [podcastCover, setPodcastCover] = useState<File | null>(null);
+
+  const [showEpisodeModal, setShowEpisodeModal] = useState(false);
+  const [editingEpisode, setEditingEpisode] = useState<podcastApi.Episode | null>(null);
+  const [episodeTitle, setEpisodeTitle] = useState('');
+  const [episodeDesc, setEpisodeDesc] = useState('');
+  const [episodeMediaFile, setEpisodeMediaFile] = useState<File | null>(null);
+
+  // Category filter
+  const [activeCategory, setActiveCategory] = useState('all');
   const categories = [
     { id: 'all', label: 'Tất cả', icon: Mic },
-    { id: 'tech', label: 'Công nghệ', icon: Radio },
-    { id: 'edu', label: 'Giáo dục', icon: Headphones },
-    { id: 'ent', label: 'Giải trí', icon: Cast },
+    { id: 'Công nghệ', label: 'Công nghệ', icon: Radio },
+    { id: 'Giáo dục', label: 'Giáo dục', icon: Headphones },
+    { id: 'Giải trí', label: 'Giải trí', icon: Cast },
   ];
 
-  const featuredPodcasts: Podcast[] = [
-    {
-      id: 'p1',
-      title: 'The Daily',
-      host: 'The New York Times',
-      category: 'News',
-      cover: 'https://images.unsplash.com/photo-1559523161-0fc0d8b38a7a?q=80&w=1080',
-      description: 'Bản tin âm thanh ngắn gọn để mở đầu ngày mới với những câu chuyện lớn nhất.',
-      duration: '25 min',
-      date: 'Hôm nay'
-    },
-    {
-      id: 'p2',
-      title: 'TED Radio Hour',
-      host: 'NPR',
-      category: 'Education',
-      cover: 'https://images.unsplash.com/photo-1478737270239-2f52b27fa34e?q=80&w=1080',
-      description: 'Những ý tưởng lớn được kể lại bằng giọng nói truyền cảm và dễ nghe.',
-      duration: '50 min',
-      date: 'Hôm qua'
+  // Fetch initial data
+  const fetchPodcasts = async () => {
+    setIsLoading(true);
+    try {
+      const res = await podcastApi.getAllPodcasts();
+      setPodcasts(Array.isArray(res.data) ? res.data : []);
+    } catch (err) {
+      console.error('Lỗi lấy danh sách podcast:', err);
+      toast.error('Không thể tải danh sách podcast');
+    } finally {
+      setIsLoading(false);
     }
-  ];
-
-  const trendingPodcasts: Podcast[] = [
-    {
-      id: 't1',
-      title: 'Stuff You Should Know',
-      host: 'iHeartRadio',
-      category: 'Education',
-      cover: 'https://images.unsplash.com/photo-1532012197267-da84d127e765?q=80&w=1080',
-      description: 'Một thư viện kiến thức vui nhộn cho những lúc muốn nghe điều mới mẻ.',
-      duration: '45 min'
-    },
-    {
-      id: 't2',
-      title: 'Planet Money',
-      host: 'NPR',
-      category: 'Business',
-      cover: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?q=80&w=1080',
-      description: 'Kinh tế học được kể lại gọn gàng, dễ hiểu và có tính giải trí.',
-      duration: '20 min'
-    }
-  ];
+  };
 
   useEffect(() => {
-    const fetchLiveRooms = async () => {
-      try {
-        const token = sessionStorage.getItem("accessToken");
-        const res = await axios.get(`${BASE_URL}/api/live/active`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "ngrok-skip-browser-warning": "true"
-          }
-        });
-        setLiveRooms(res.data);
-      } catch (err) {
-        console.error("Lỗi lấy danh sách live:", err);
-      }
-    };
-
-    fetchLiveRooms();
-    const interval = setInterval(fetchLiveRooms, 10000);
-    return () => clearInterval(interval);
+    fetchPodcasts();
   }, []);
 
+  // Fetch episodes when a podcast is selected
+  useEffect(() => {
+    if (selectedPodcast) {
+      const fetchEpisodes = async () => {
+        setIsLoadingEpisodes(true);
+        try {
+          const res = await podcastApi.getEpisodesByPodcastId(selectedPodcast.id);
+          setEpisodes(Array.isArray(res.data) ? res.data : []);
+        } catch (err) {
+          console.error('Lỗi lấy danh sách tập podcast:', err);
+          toast.error('Không thể tải danh sách tập phát sóng');
+        } finally {
+          setIsLoadingEpisodes(false);
+        }
+      };
+      fetchEpisodes();
+    } else {
+      setEpisodes([]);
+    }
+  }, [selectedPodcast]);
+
+  // Handle Play Episode (Supports mp3 & mp4)
+  const handlePlayEpisode = async (episode: podcastApi.Episode) => {
+    const playUrl = episode.mediaUrl || episode.audioUrl;
+    if (!playUrl) {
+      toast.error('Tập phát sóng này chưa được tải lên file đa phương tiện!');
+      return;
+    }
+
+    // Map Episode to Song schema for Player compatibility
+    const mappedSong: Song = {
+      id: episode.id,
+      title: episode.title,
+      artistName: selectedPodcast?.title || 'Podcast',
+      albumName: episode.mediaType?.includes('video') || playUrl.toLowerCase().endsWith('.mp4') ? 'Video Podcast' : 'Audio Podcast',
+      coverUrl: selectedPodcast?.coverImageUrl || selectedPodcast?.coverImage || 'https://images.unsplash.com/photo-1590602847861-f357a9332bbc?q=80&w=200',
+      duration: episode.duration ? Math.floor(episode.duration / 1000) : 0, // DTO durationMs to seconds
+      streamUrl: playUrl,
+      status: 'PUBLISHED' as const,
+      viewCount: episode.playCount || 0,
+      isExplicit: false,
+      genre: selectedPodcast?.categories || []
+    };
+
+    const mappedQueue = episodes
+      .filter(ep => ep.mediaUrl || ep.audioUrl)
+      .map(ep => ({
+        id: ep.id,
+        title: ep.title,
+        artistName: selectedPodcast?.title || 'Podcast',
+        albumName: ep.mediaType?.includes('video') || (ep.mediaUrl || ep.audioUrl || '').toLowerCase().endsWith('.mp4') ? 'Video Podcast' : 'Audio Podcast',
+        coverUrl: selectedPodcast?.coverImageUrl || selectedPodcast?.coverImage || 'https://images.unsplash.com/photo-1590602847861-f357a9332bbc?q=80&w=200',
+        duration: ep.duration ? Math.floor(ep.duration / 1000) : 0,
+        streamUrl: ep.mediaUrl || ep.audioUrl || '',
+        status: 'PUBLISHED' as const,
+        viewCount: ep.playCount || 0,
+        isExplicit: false,
+        genre: selectedPodcast?.categories || []
+      }));
+
+    // Trigger listen count increment
+    try {
+      await podcastApi.listenEpisode(episode.id);
+      // Update local count
+      setEpisodes(prev => prev.map(e => e.id === episode.id ? { ...e, playCount: (e.playCount || 0) + 1 } : e));
+    } catch (e) {
+      console.error(e);
+    }
+
+    onPlaySong(mappedSong, mappedQueue);
+  };
+
+  // Create or Update Podcast Submit
+  const handlePodcastSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!podcastTitle.trim() || !podcastDesc.trim()) {
+      toast.error('Vui lòng điền đủ Tiêu đề và Mô tả');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('title', podcastTitle);
+    formData.append('description', podcastDesc);
+    formData.append('hostId', currentUserId || 'guest_host');
+    
+    const catList = podcastCategories.split(',').map(c => c.trim()).filter(Boolean);
+    catList.forEach(c => formData.append('categories', c));
+
+    if (podcastCover) {
+      formData.append('coverImage', podcastCover);
+    }
+
+    try {
+      if (editingPodcast) {
+        await podcastApi.updatePodcast(editingPodcast.id, formData);
+        toast.success('Cập nhật Podcast thành công');
+      } else {
+        await podcastApi.createPodcast(formData);
+        toast.success('Tạo Podcast thành công');
+      }
+      setShowPodcastModal(false);
+      setEditingPodcast(null);
+      setPodcastTitle('');
+      setPodcastDesc('');
+      setPodcastCategories('');
+      setPodcastCover(null);
+      fetchPodcasts();
+    } catch (err) {
+      console.error(err);
+      toast.error('Lỗi khi gửi yêu cầu xử lý Podcast');
+    }
+  };
+
+  // Create or Update Episode Submit
+  const handleEpisodeSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedPodcast) return;
+    if (!episodeTitle.trim() || !episodeDesc.trim()) {
+      toast.error('Vui lòng nhập đủ Tiêu đề và Mô tả cho tập phát sóng');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('title', episodeTitle);
+    formData.append('description', episodeDesc);
+    formData.append('status', 'PUBLISHED');
+
+    if (episodeMediaFile) {
+      formData.append('audioFile', episodeMediaFile); // parameter name remains audioFile in multipart
+      const isVideo = episodeMediaFile.type.includes('video') || episodeMediaFile.name.endsWith('.mp4');
+      formData.append('mediaType', isVideo ? 'video/mp4' : 'audio/mpeg');
+    } else if (!editingEpisode) {
+      toast.error('Vui lòng tải lên file âm thanh/video cho tập phát sóng');
+      return;
+    }
+
+    try {
+      if (editingEpisode) {
+        await podcastApi.updateEpisode(editingEpisode.id, formData);
+        toast.success('Cập nhật tập phát sóng thành công');
+      } else {
+        await podcastApi.createEpisode(selectedPodcast.id, formData);
+        toast.success('Thêm tập phát sóng thành công');
+      }
+      setShowEpisodeModal(false);
+      setEditingEpisode(null);
+      setEpisodeTitle('');
+      setEpisodeDesc('');
+      setEpisodeMediaFile(null);
+      
+      // Reload episodes list
+      const res = await podcastApi.getEpisodesByPodcastId(selectedPodcast.id);
+      setEpisodes(Array.isArray(res.data) ? res.data : []);
+    } catch (err) {
+      console.error(err);
+      toast.error('Lỗi tải file hoặc gửi yêu cầu episode');
+    }
+  };
+
+  // Delete Podcast
+  const handleDeletePodcast = async (id: string) => {
+    if (!window.confirm('Bạn có chắc chắn muốn xóa Podcast này và tất cả tập phát sóng bên trong?')) return;
+    try {
+      await podcastApi.deletePodcast(id);
+      toast.success('Đã xóa Podcast');
+      fetchPodcasts();
+      if (selectedPodcast?.id === id) {
+        setSelectedPodcast(null);
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error('Lỗi khi xóa Podcast');
+    }
+  };
+
+  // Delete Episode
+  const handleDeleteEpisode = async (episodeId: string) => {
+    if (!window.confirm('Bạn có chắc chắn muốn xóa tập phát sóng này?')) return;
+    try {
+      await podcastApi.deleteEpisode(episodeId);
+      toast.success('Đã xóa tập phát sóng');
+      if (selectedPodcast) {
+        const res = await podcastApi.getEpisodesByPodcastId(selectedPodcast.id);
+        setEpisodes(Array.isArray(res.data) ? res.data : []);
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error('Lỗi khi xóa tập phát sóng');
+    }
+  };
+
+  const filteredPodcasts = podcasts.filter(p => {
+    if (activeCategory === 'all') return true;
+    return p.categories && p.categories.some(c => c.toLowerCase().includes(activeCategory.toLowerCase()));
+  });
+
+  const myPodcasts = podcasts.filter(p => p.hostId === currentUserId);
+
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(251,113,133,0.16),_transparent_28%),radial-gradient(circle_at_top_right,_rgba(34,211,238,0.12),_transparent_24%),linear-gradient(180deg,_#020617_0%,_#0f172a_44%,_#020617_100%)] px-4 py-6 text-white sm:px-6 lg:px-10 lg:py-8">
+    <div className="min-h-screen px-4 py-8 text-white sm:px-6 lg:px-10">
       <div className="mx-auto flex max-w-7xl flex-col gap-8">
-        <section className="relative overflow-hidden rounded-[32px] border border-white/10 bg-white/6 p-6 shadow-2xl shadow-black/30 backdrop-blur-xl sm:p-8 lg:p-10">
-          <div className="absolute -left-16 top-0 h-48 w-48 rounded-full bg-rose-500/20 blur-3xl" />
-          <div className="absolute right-0 top-0 h-56 w-56 rounded-full bg-cyan-400/10 blur-3xl" />
+        
+        {/* ================= HERO STUDIO PANEL ================= */}
+        {!selectedPodcast && (
+          <section 
+            className="relative overflow-hidden rounded-[32px] border border-white/10 bg-slate-900/30 backdrop-blur-xl shadow-2xl p-8 sm:p-10"
+          >
+            <div className="absolute -left-20 -top-20 h-72 w-72 rounded-full bg-cyan-500/10 blur-3xl pointer-events-none" />
+            <div className="absolute right-0 bottom-0 h-80 w-80 rounded-full bg-blue-500/10 blur-3xl pointer-events-none" />
 
-          <div className="relative grid gap-8 lg:grid-cols-[1.4fr_0.9fr] lg:items-end">
-            <div className="max-w-3xl">
-              <div className="inline-flex items-center gap-2 rounded-full border border-rose-400/20 bg-rose-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-rose-200">
-                <Radio className="h-3.5 w-3.5" />
-                Studio Podcast
+            <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-8">
+              <div className="max-w-3xl space-y-4">
+                <div className="inline-flex items-center gap-2 rounded-full border border-cyan-500/30 bg-cyan-500/15 px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-cyan-300 shadow-md">
+                  <Layers className="h-4 w-4" />
+                  <span>Podcast Media Center</span>
+                </div>
+
+                <h1 className="text-4xl font-black tracking-tight text-white sm:text-5xl leading-tight">
+                  Khám phá & Đăng tải các Series Podcast.
+                </h1>
+
+                <p className="text-base leading-relaxed text-slate-300">
+                  Thư viện tổng hợp những tập phát sóng âm thanh (MP3) và video (MP4) sống động nhất. Bạn cũng có thể tự tạo các series độc quyền của riêng mình.
+                </p>
               </div>
 
-              <h1 className="mt-5 max-w-2xl text-4xl font-black tracking-tight text-white sm:text-5xl">
-                Lên sóng podcast trực tiếp trong một không gian gọn, rõ và dễ tham gia.
-              </h1>
-
-              <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-300 sm:text-base">
-                Bắt đầu một phòng audio live để trò chuyện, chia sẻ chủ đề và để người nghe tham gia ngay
-                trên Beatbox mà không cần bố cục video phức tạp.
-              </p>
-
-              <div className="mt-6 flex flex-wrap gap-3">
+              {activeTab === 'studio' && (
                 <Button
-                  onClick={() => onJoinLiveRoom("", true)}
-                  size="lg"
-                  className="rounded-full bg-gradient-to-r from-rose-500 via-red-500 to-orange-500 px-6 text-white shadow-lg shadow-rose-900/40 hover:scale-[1.02]"
+                  onClick={() => {
+                    setEditingPodcast(null);
+                    setPodcastTitle('');
+                    setPodcastDesc('');
+                    setPodcastCategories('');
+                    setPodcastCover(null);
+                    setShowPodcastModal(true);
+                  }}
+                  className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white rounded-2xl font-bold gap-2 px-6 h-12 shadow-lg shrink-0 self-start md:self-auto"
                 >
-                  <Signal className="mr-2 h-4 w-4" />
-                  Bắt đầu podcast live
+                  <Plus className="w-5 h-5" /> Tạo Podcast mới
                 </Button>
-
-                <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/20 px-4 py-3 text-sm text-slate-200">
-                  <Headphones className="h-4 w-4 text-cyan-300" />
-                  {liveRooms.length} phòng đang phát
-                </div>
-              </div>
+              )}
             </div>
+          </section>
+        )}
 
-            <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-1">
-              <div className="rounded-3xl border border-white/10 bg-black/25 p-5">
-                <div className="flex items-center gap-3 text-rose-200">
-                  <Mic className="h-5 w-5" />
-                  <span className="text-sm font-semibold uppercase tracking-[0.2em]">Chế độ host</span>
-                </div>
-                <p className="mt-3 text-sm leading-6 text-slate-300">
-                  Vào phòng với micro mở sẵn, giao diện tập trung vào nội dung âm thanh.
-                </p>
-              </div>
-
-              <div className="rounded-3xl border border-white/10 bg-black/25 p-5">
-                <div className="flex items-center gap-3 text-cyan-200">
-                  <Waves className="h-5 w-5" />
-                  <span className="text-sm font-semibold uppercase tracking-[0.2em]">Ưu tiên âm thanh</span>
-                </div>
-                <p className="mt-3 text-sm leading-6 text-slate-300">
-                  Không bật camera mặc định, phù hợp với định dạng live kiểu podcast.
-                </p>
-              </div>
-
-              <div className="rounded-3xl border border-white/10 bg-black/25 p-5">
-                <div className="flex items-center gap-3 text-amber-200">
-                  <Users className="h-5 w-5" />
-                  <span className="text-sm font-semibold uppercase tracking-[0.2em]">Thính giả</span>
-                </div>
-                <p className="mt-3 text-sm leading-6 text-slate-300">
-                  Người nghe có thể vào phòng nhanh để theo dõi buổi live đang diễn ra.
-                </p>
-              </div>
+        {/* ================= TABS SELECTOR (Explore vs Creator Studio) ================= */}
+        {!selectedPodcast && (
+          <div className="flex items-center justify-between border-b border-white/15 pb-4">
+            <div className="flex gap-6">
+              <button
+                onClick={() => setActiveTab('explore')}
+                className={cn(
+                  "text-lg font-black pb-2 px-1 transition-all border-b-2",
+                  activeTab === 'explore' ? "text-cyan-400 border-cyan-400" : "text-slate-400 border-transparent hover:text-white"
+                )}
+              >
+                Khám phá Podcast
+              </button>
+              <button
+                onClick={() => setActiveTab('studio')}
+                className={cn(
+                  "text-lg font-black pb-2 px-1 transition-all border-b-2",
+                  activeTab === 'studio' ? "text-cyan-400 border-cyan-400" : "text-slate-400 border-transparent hover:text-white"
+                )}
+              >
+                Studio của tôi
+              </button>
             </div>
           </div>
-        </section>
+        )}
 
-        <section className="flex gap-2.5 overflow-x-auto pb-1">
-          {categories.map((cat, index) => (
-            <button
-              key={cat.id}
-              className={cn(
-                "flex items-center gap-2 rounded-full border px-4 py-2.5 text-sm transition-all duration-200",
-                index === 0
-                  ? "border-rose-400/40 bg-rose-500/15 text-white shadow-lg shadow-rose-950/20"
-                  : "border-white/10 bg-white/5 text-slate-200 hover:border-white/20 hover:bg-white/10"
-              )}
-            >
-              <cat.icon className="h-4 w-4" />
-              {cat.label}
-            </button>
-          ))}
-        </section>
+        {/* ================= EXPLORE TAB VIEW ================= */}
+        {!selectedPodcast && activeTab === 'explore' && (
+          <>
+            {/* Categories Selector */}
+            <section className="flex gap-3 overflow-x-auto pb-2">
+              {categories.map((cat) => {
+                const Icon = cat.icon;
+                const isSelected = activeCategory === cat.id;
+                return (
+                  <button
+                    key={cat.id}
+                    onClick={() => setActiveCategory(cat.id)}
+                    className={cn(
+                      "flex items-center gap-2.5 rounded-full px-5 py-2.5 text-sm font-bold border transition-all flex-shrink-0 cursor-pointer",
+                      isSelected
+                        ? "bg-cyan-500 border-cyan-500 text-black shadow-lg shadow-cyan-500/20 scale-105"
+                        : "bg-white/5 border-white/10 text-slate-300 hover:bg-white/10 hover:text-white"
+                    )}
+                  >
+                    <Icon className="h-4.5 w-4.5" />
+                    <span>{cat.label}</span>
+                  </button>
+                );
+              })}
+            </section>
 
-        <section className="grid gap-8 lg:grid-cols-[1.25fr_0.75fr]">
-          <div className="relative overflow-hidden rounded-[32px] border border-rose-300/28 bg-[radial-gradient(circle_at_top_left,rgba(251,113,133,0.24),transparent_24%),linear-gradient(180deg,rgba(190,24,93,0.18),rgba(15,23,42,0.88)_24%,rgba(2,6,23,0.96)_100%)] p-5 shadow-[0_28px_90px_rgba(244,63,94,0.2)] sm:p-6">
-            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-rose-300/70 to-transparent" />
-            <div className="pointer-events-none absolute inset-0 bg-black/6" />
-            <div className="relative flex items-center justify-between gap-4">
-              <div>
-                <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.22em] text-rose-200">
-                  <Signal className="h-4 w-4" />
-                  Đang lên sóng
+            {/* Podcasts Grid */}
+            <section className="space-y-4">
+              <h2 className="text-xl font-bold">Tất cả Series Podcast ({filteredPodcasts.length})</h2>
+              {isLoading ? (
+                <div className="flex flex-col items-center justify-center py-20 gap-3">
+                  <div className="w-8 h-8 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin" />
+                  <p className="text-slate-400 text-sm">Đang tải danh mục...</p>
                 </div>
-                <h2 className="mt-2 text-3xl font-black tracking-tight text-white">Phòng live podcast</h2>
-                <p className="mt-2 max-w-2xl text-sm leading-6 text-rose-50/75">
-                  Khu vực ưu tiên cho các buổi phát trực tiếp đang diễn ra ngay lúc này. Chọn một phòng để vào nghe ngay.
-                </p>
+              ) : filteredPodcasts.length === 0 ? (
+                <div className="text-center py-20 text-slate-400 italic">
+                  Không tìm thấy series podcast nào thuộc danh mục này.
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                  {filteredPodcasts.map(podcast => (
+                    <div
+                      key={podcast.id}
+                      onClick={() => setSelectedPodcast(podcast)}
+                      className="group bg-slate-900/40 hover:bg-slate-800/40 p-4 border border-white/5 hover:border-cyan-500/25 rounded-2xl cursor-pointer transition-all flex flex-col gap-3"
+                    >
+                      <div className="aspect-square w-full rounded-xl overflow-hidden shadow-lg relative">
+                        <ImageWithFallback
+                          src={podcast.coverImageUrl || podcast.coverImage}
+                          alt={podcast.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-all duration-300"
+                        />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <div className="w-12 h-12 rounded-full bg-cyan-500 flex items-center justify-center scale-90 group-hover:scale-100 transition-all shadow-lg">
+                            <Play className="w-5 h-5 text-black fill-black ml-0.5" />
+                          </div>
+                        </div>
+                      </div>
+                      <div>
+                        <h3 className="font-extrabold text-sm sm:text-base text-white truncate group-hover:text-cyan-400 transition-colors">
+                          {podcast.title}
+                        </h3>
+                        <p className="text-xs text-slate-400 truncate mt-1">Host ID: {podcast.hostId}</p>
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {podcast.categories && podcast.categories.map((c, i) => (
+                            <span key={i} className="text-[10px] bg-white/10 px-2 py-0.5 rounded-full text-slate-300 font-semibold">{c}</span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+          </>
+        )}
+
+        {/* ================= STUDIO TAB VIEW (My Podcasts) ================= */}
+        {!selectedPodcast && activeTab === 'studio' && (
+          <section className="space-y-4">
+            <h2 className="text-xl font-bold">Series của tôi ({myPodcasts.length})</h2>
+            {isLoading ? (
+              <div className="flex flex-col items-center justify-center py-20 gap-3">
+                <div className="w-8 h-8 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin" />
+                <p className="text-slate-400 text-sm">Đang tải...</p>
               </div>
-              {liveRooms.length > 0 && (
-                <div className="flex items-center gap-2 rounded-full border border-rose-300/30 bg-rose-400/15 px-3 py-1.5 text-xs font-semibold text-rose-100 shadow-lg shadow-rose-950/20">
-                  <span className="relative flex h-2.5 w-2.5">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-75" />
-                    <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-rose-400" />
-                  </span>
-                  LIVE NGAY
-                </div>
-              )}
-            </div>
-
-            {liveRooms.length === 0 ? (
-              <div className="mt-6 rounded-[24px] border border-dashed border-white/10 bg-white/[0.03] px-6 py-12 text-center">
-                <Users className="mx-auto h-12 w-12 text-slate-600" />
-                <h3 className="mt-4 text-lg font-semibold text-white">Chưa có phòng nào đang phát</h3>
-                <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-400">
-                  Bạn có thể là người đầu tiên bắt đầu một buổi trò chuyện audio trực tiếp cho cộng đồng.
-                </p>
+            ) : myPodcasts.length === 0 ? (
+              <div className="text-center py-20 text-slate-400 border border-dashed border-white/10 rounded-2xl flex flex-col items-center justify-center gap-4 bg-white/5">
+                <p className="italic">Bạn chưa sở hữu series podcast nào.</p>
                 <Button
-                  onClick={() => onJoinLiveRoom("", true)}
-                  className="mt-6 rounded-full bg-white text-slate-950 hover:bg-slate-200"
+                  onClick={() => {
+                    setEditingPodcast(null);
+                    setPodcastTitle('');
+                    setPodcastDesc('');
+                    setPodcastCategories('');
+                    setPodcastCover(null);
+                    setShowPodcastModal(true);
+                  }}
+                  className="bg-cyan-500 text-black font-bold hover:bg-cyan-400 rounded-xl"
                 >
-                  Tạo phòng ngay
+                  <Plus className="w-4 h-4 mr-2" /> Tạo ngay series đầu tiên
                 </Button>
               </div>
             ) : (
-              <div className="relative mt-6 grid gap-4">
-                {liveRooms.map((room, index) => (
-                  <button
-                    key={room.roomId}
-                    onClick={() => onJoinLiveRoom(room.roomId, false)}
-                    className={cn(
-                      "group relative grid w-full gap-4 overflow-hidden rounded-[28px] border p-4 text-left transition-all duration-300 sm:grid-cols-[auto_1fr_auto] sm:items-center",
-                      index === 0
-                        ? "min-h-[220px] border-rose-200/55 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.16),transparent_22%),radial-gradient(circle_at_bottom_right,rgba(251,113,133,0.24),transparent_30%),linear-gradient(135deg,rgba(225,29,72,0.88),rgba(190,24,93,0.9)_38%,rgba(127,29,29,0.84)_62%,rgba(30,41,59,0.82)_100%)] shadow-[0_24px_90px_rgba(244,63,94,0.34)] ring-1 ring-rose-100/30 hover:-translate-y-1.5 hover:shadow-[0_34px_110px_rgba(244,63,94,0.42)]"
-                        : "border-white/8 bg-[linear-gradient(135deg,rgba(15,23,42,0.95),rgba(30,41,59,0.8))] hover:-translate-y-0.5 hover:border-rose-400/40 hover:shadow-lg hover:shadow-rose-950/20"
-                    )}
-                  >
-                    {index === 0 && <div className="pointer-events-none absolute inset-0 bg-black/4" />}
-                    {index === 0 && (
-                      <>
-                        <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-rose-400/20 blur-3xl" />
-                        <div className="absolute left-6 top-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-black/20 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.22em] text-white shadow-lg shadow-black/20">
-                          <span className="relative flex h-2.5 w-2.5">
-                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-300 opacity-80" />
-                            <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-rose-300" />
-                          </span>
-                          Nổi bật nhất
-                        </div>
-                      </>
-                    )}
-
-                    <div className={cn(
-                      "relative flex h-16 w-16 items-center justify-center rounded-2xl ring-1 ring-white/10",
-                      index === 0
-                        ? "bg-gradient-to-br from-white/22 via-rose-200/18 to-orange-200/12 shadow-lg shadow-rose-950/35"
-                        : "bg-gradient-to-br from-rose-500/25 to-orange-400/15"
-                    )}>
-                      <Radio className={cn("h-7 w-7", index === 0 ? "text-white" : "text-rose-300")} />
-                    </div>
-
-                    <div className={cn("relative z-10 min-w-0", index === 0 && "pt-8 sm:pt-0")}>
-                      <div className={cn(
-                        "flex items-center gap-2 text-[11px] uppercase tracking-[0.2em]",
-                        index === 0 ? "text-rose-100" : "text-rose-200"
-                      )}>
-                        <span className={cn("h-2 w-2 rounded-full", index === 0 ? "bg-white" : "bg-rose-400")} />
-                        Podcast live
-                      </div>
-                      <h3 className={cn(
-                        "mt-2 truncate font-semibold text-white",
-                        index === 0 ? "text-2xl sm:text-3xl" : "text-lg"
-                      )}>
-                        {room.roomTitle || 'Phòng podcast trực tiếp'}
-                      </h3>
-                      <p className={cn(
-                        "mt-1 truncate",
-                        index === 0 ? "text-base font-medium text-rose-50/95" : "text-sm text-slate-300"
-                      )}>
-                        Host: {room.hostName || 'Đang cập nhật'}
-                      </p>
-                      {index === 0 && (
-                        <p className="mt-3 max-w-2xl text-sm leading-6 text-rose-50/90">
-                          Buổi trò chuyện đang thu hút người nghe ngay lúc này. Vào phòng để theo dõi trực tiếp và nghe host chia sẻ.
-                        </p>
-                      )}
-                    </div>
-
-                    <div className={cn(
-                      "relative z-10 flex items-center gap-3 self-start sm:self-center",
-                      index === 0 && "sm:flex-col sm:items-end"
-                    )}>
-                      <div className={cn(
-                        "hidden rounded-full border px-3 py-1 text-xs sm:block",
-                        index === 0
-                          ? "border-white/25 bg-white/12 text-white"
-                          : "border-white/10 bg-white/5 text-slate-300"
-                      )}>
-                        Phòng {room.roomId}
-                      </div>
-                      <span className={cn(
-                        "rounded-full px-4 py-2 text-sm font-semibold transition-colors",
-                        index === 0
-                          ? "bg-white text-rose-700 shadow-lg shadow-rose-950/20 group-hover:bg-rose-50"
-                          : "bg-rose-500 text-white group-hover:bg-rose-400"
-                      )}>
-                        Vào nghe
-                      </span>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="grid gap-4">
-            <div className="rounded-[28px] border border-white/10 bg-gradient-to-br from-cyan-500/10 to-transparent p-5">
-              <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.22em] text-cyan-200">
-                <Sparkles className="h-4 w-4" />
-                Gợi ý format
-              </div>
-              <ul className="mt-4 space-y-3 text-sm leading-6 text-slate-300">
-                <li>Hỏi đáp nhanh với khán giả theo chủ đề trong 20-30 phút.</li>
-                <li>Bản tin âm nhạc hằng tuần với tin mới, review và chia sẻ playlist.</li>
-                <li>Phòng tâm sự của nghệ sĩ, creator hoặc host có khách mời.</li>
-              </ul>
-            </div>
-
-            <div className="rounded-[28px] border border-white/10 bg-white/5 p-5">
-              <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.22em] text-amber-200">
-                <Clock className="h-4 w-4" />
-                Nổi bật hôm nay
-              </div>
-              <div className="mt-4 grid gap-4">
-                {featuredPodcasts.map((podcast) => (
-                  <div
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {myPodcasts.map(podcast => (
+                  <div 
                     key={podcast.id}
-                    className="flex gap-4 rounded-3xl border border-white/8 bg-black/20 p-3"
+                    className="p-5 rounded-2xl border border-white/10 bg-slate-900/30 backdrop-blur flex gap-4 hover:border-cyan-500/20 transition-all group"
                   >
-                    <ImageWithFallback
-                      src={podcast.cover}
-                      alt={podcast.title}
-                      className="h-16 w-16 rounded-2xl object-cover sm:h-[72px] sm:w-[72px]"
-                    />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs uppercase tracking-[0.18em] text-slate-400">{podcast.category}</p>
-                      <h3 className="mt-1 line-clamp-2 text-base font-semibold text-white">{podcast.title}</h3>
-                      <p className="mt-1 text-sm text-slate-300">{podcast.host}</p>
-                      <p className="mt-2 line-clamp-2 text-sm text-slate-400">{podcast.description}</p>
+                    <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-xl overflow-hidden shadow-md flex-shrink-0">
+                      <ImageWithFallback
+                        src={podcast.coverImageUrl || podcast.coverImage}
+                        alt={podcast.title}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0 flex flex-col justify-between">
+                      <div>
+                        <h3 
+                          onClick={() => setSelectedPodcast(podcast)}
+                          className="font-extrabold text-lg text-white hover:text-cyan-400 cursor-pointer truncate"
+                        >
+                          {podcast.title}
+                        </h3>
+                        <p className="text-xs text-slate-400 line-clamp-2 mt-1">{podcast.description}</p>
+                      </div>
+                      <div className="flex gap-2 mt-3">
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => setSelectedPodcast(podcast)}
+                          className="h-8 rounded-lg font-bold text-xs"
+                        >
+                          Tập phát sóng
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setEditingPodcast(podcast);
+                            setPodcastTitle(podcast.title);
+                            setPodcastDesc(podcast.description);
+                            setPodcastCategories(podcast.categories ? podcast.categories.join(', ') : '');
+                            setPodcastCover(null);
+                            setShowPodcastModal(true);
+                          }}
+                          className="h-8 rounded-lg text-xs font-bold border-white/10 text-slate-300 hover:text-white"
+                        >
+                          <Edit3 className="w-3.5 h-3.5 mr-1" /> Sửa
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleDeletePodcast(podcast.id)}
+                          className="h-8 rounded-lg text-xs font-bold text-rose-400 hover:text-rose-300 hover:bg-rose-500/10"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 ))}
               </div>
-            </div>
-          </div>
-        </section>
+            )}
+          </section>
+        )}
 
-        <section className="rounded-[28px] border border-white/10 bg-white/5 p-5 sm:p-6">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.22em] text-cyan-200">
-                <Headphones className="h-4 w-4" />
-                Xu hướng nghe
+        {/* ================= PODCAST DETAIL VIEW ================= */}
+        {selectedPodcast && (
+          <div className="space-y-8 animate-in fade-in duration-300">
+            {/* Back button */}
+            <button
+              onClick={() => setSelectedPodcast(null)}
+              className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors font-bold border-0 bg-transparent cursor-pointer"
+            >
+              <ArrowLeft className="w-5 h-5" /> Trở lại danh sách
+            </button>
+
+            {/* Podcast Cover Info Header */}
+            <div className="flex flex-col md:flex-row gap-6 items-start">
+              <div className="w-40 h-40 sm:w-56 sm:h-56 rounded-3xl overflow-hidden shadow-2xl border border-white/10 flex-shrink-0">
+                <ImageWithFallback
+                  src={selectedPodcast.coverImageUrl || selectedPodcast.coverImage}
+                  alt={selectedPodcast.title}
+                  className="w-full h-full object-cover"
+                />
               </div>
-              <h2 className="mt-2 text-2xl font-bold">Một vài podcast để bắt đầu</h2>
+
+              <div className="space-y-4 flex-1">
+                <div className="flex flex-wrap gap-2">
+                  {selectedPodcast.categories && selectedPodcast.categories.map((c, i) => (
+                    <span key={i} className="text-xs bg-cyan-500/20 border border-cyan-500/20 text-cyan-300 font-bold px-3 py-1 rounded-full">{c}</span>
+                  ))}
+                </div>
+
+                <h1 className="text-3xl sm:text-5xl font-black text-white leading-tight">{selectedPodcast.title}</h1>
+                
+                <div className="flex flex-wrap gap-4 text-sm text-slate-300 font-semibold items-center">
+                  <span className="flex items-center gap-1.5">
+                    <Mic className="w-4.5 h-4.5 text-cyan-400" /> Host: {selectedPodcast.hostId}
+                  </span>
+                  <span className="text-white/20">•</span>
+                  <span className="flex items-center gap-1.5">
+                    <Layers className="w-4.5 h-4.5 text-cyan-400" /> {episodes.length} tập phát sóng
+                  </span>
+                </div>
+
+                <p className="text-slate-300 text-sm leading-relaxed max-w-3xl">{selectedPodcast.description}</p>
+
+                {/* If Owned Podcast: Episode Creator Controls */}
+                {selectedPodcast.hostId === currentUserId && (
+                  <Button
+                    onClick={() => {
+                      setEditingEpisode(null);
+                      setEpisodeTitle('');
+                      setEpisodeDesc('');
+                      setEpisodeMediaFile(null);
+                      setShowEpisodeModal(true);
+                    }}
+                    className="bg-gradient-to-r from-rose-500 to-orange-500 hover:from-rose-600 hover:to-orange-600 text-white rounded-xl font-bold gap-1.5"
+                  >
+                    <PlusCircle className="w-5 h-5" /> Thêm tập phát mới
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            {/* Episode List Section */}
+            <div className="space-y-4 border-t border-white/10 pt-8">
+              <h2 className="text-2xl font-bold">Các tập phát sóng</h2>
+              
+              {isLoadingEpisodes ? (
+                <div className="flex flex-col items-center justify-center py-10 gap-3">
+                  <div className="w-6 h-6 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin" />
+                  <p className="text-slate-400 text-xs">Đang tải tập phát sóng...</p>
+                </div>
+              ) : episodes.length === 0 ? (
+                <div className="text-center py-10 text-slate-400 italic">
+                  Chưa có tập phát sóng nào được tải lên cho Podcast này.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {episodes.map((episode, idx) => {
+                    const isVideo = episode.mediaType?.includes('video') || (episode.mediaUrl || '').toLowerCase().endsWith('.mp4');
+                    return (
+                      <div 
+                        key={episode.id}
+                        className="p-5 rounded-2xl border border-white/5 bg-slate-900/20 hover:bg-slate-900/40 hover:border-cyan-500/20 transition-all flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 group"
+                      >
+                        <div className="flex gap-4 items-start flex-1 min-w-0">
+                          <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center flex-shrink-0 text-cyan-400 font-mono font-bold text-sm">
+                            {idx + 1}
+                          </div>
+                          <div className="space-y-1 flex-1 min-w-0">
+                            <h3 className="font-extrabold text-base text-white group-hover:text-cyan-400 transition-colors truncate flex items-center gap-2">
+                              {episode.title}
+                              {isVideo ? (
+                                <span className="inline-flex items-center gap-1 text-[10px] bg-cyan-500/20 text-cyan-300 px-2 py-0.5 rounded border border-cyan-500/20 uppercase font-black tracking-wider">
+                                  <Film className="w-3 h-3" /> MP4 Video
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded border border-emerald-500/20 uppercase font-black tracking-wider">
+                                  <FileAudio className="w-3 h-3" /> MP3 Audio
+                                </span>
+                              )}
+                            </h3>
+                            <p className="text-xs text-slate-400 line-clamp-2">{episode.description}</p>
+                            <div className="flex gap-4 text-xs text-slate-400 mt-2 font-semibold">
+                              <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5 text-cyan-500" /> {episode.duration ? `${Math.floor(episode.duration / 1000 / 60)} phút` : 'Chưa cập nhật'}</span>
+                              <span>•</span>
+                              <span>Lượt nghe: {episode.playCount || 0}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-3 self-end sm:self-auto flex-shrink-0">
+                          {/* Play button */}
+                          <Button
+                            onClick={() => handlePlayEpisode(episode)}
+                            className="bg-cyan-500 hover:bg-cyan-400 text-black font-bold rounded-xl h-10 w-10 p-0 flex items-center justify-center shadow-lg shadow-cyan-500/20"
+                          >
+                            <Play className="w-4.5 h-4.5 fill-black ml-0.5" />
+                          </Button>
+
+                          {/* Host modification controls */}
+                          {selectedPodcast.hostId === currentUserId && (
+                            <div className="flex gap-1">
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => {
+                                  setEditingEpisode(episode);
+                                  setEpisodeTitle(episode.title);
+                                  setEpisodeDesc(episode.description);
+                                  setEpisodeMediaFile(null);
+                                  setShowEpisodeModal(true);
+                                }}
+                                className="h-9 w-9 text-slate-400 hover:text-white rounded-full"
+                              >
+                                <Edit3 className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => handleDeleteEpisode(episode.id)}
+                                className="h-9 w-9 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded-full"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
+        )}
 
-          <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-            {trendingPodcasts.map((podcast) => (
-              <div
-                key={podcast.id}
-                className="group rounded-[24px] border border-white/8 bg-black/20 p-3 transition-all duration-300 hover:-translate-y-1 hover:border-cyan-400/30 hover:bg-black/30"
+        {/* ================= MODAL: CREATE / UPDATE PODCAST ================= */}
+        {showPodcastModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
+            <div className="bg-slate-900 border border-white/10 rounded-3xl max-w-md w-full p-6 shadow-2xl relative space-y-6">
+              <button 
+                onClick={() => setShowPodcastModal(false)}
+                className="absolute right-4 top-4 text-slate-400 hover:text-white border-0 bg-transparent cursor-pointer"
               >
-                <div className="mx-auto aspect-square w-full max-w-[140px] overflow-hidden rounded-2xl sm:max-w-[150px]">
-                  <ImageWithFallback
-                    src={podcast.cover}
-                    alt={podcast.title}
-                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                <X className="w-6 h-6" />
+              </button>
+
+              <div>
+                <h3 className="text-xl font-black text-white">{editingPodcast ? 'Sửa Podcast' : 'Tạo Podcast Series mới'}</h3>
+                <p className="text-xs text-slate-400 mt-1">Đăng tải các nội dung podcast định kỳ của bạn</p>
+              </div>
+
+              <form onSubmit={handlePodcastSubmit} className="space-y-4">
+                <div className="space-y-1.5">
+                  <Label>Tiêu đề Podcast</Label>
+                  <Input 
+                    placeholder="VD: Chuyện Đêm Khuya..."
+                    value={podcastTitle}
+                    onChange={e => setPodcastTitle(e.target.value)}
+                    className="bg-white/5 border-white/10 text-white rounded-xl"
                   />
                 </div>
-                <h3 className="mt-3 truncate text-sm font-semibold text-white sm:text-base">{podcast.title}</h3>
-                <p className="mt-1 truncate text-sm text-slate-400">{podcast.host}</p>
-                <p className="mt-2 line-clamp-2 text-xs leading-5 text-slate-500">{podcast.description}</p>
-              </div>
-            ))}
+
+                <div className="space-y-1.5">
+                  <Label>Mô tả Podcast</Label>
+                  <Textarea 
+                    placeholder="Giới thiệu về nội dung series podcast này..."
+                    rows={4}
+                    value={podcastDesc}
+                    onChange={e => setPodcastDesc(e.target.value)}
+                    className="bg-white/5 border-white/10 text-white rounded-xl resize-none"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label>Thể loại (phân cách bằng dấu phẩy)</Label>
+                  <Input 
+                    placeholder="VD: Công nghệ, Giáo dục, Giải trí"
+                    value={podcastCategories}
+                    onChange={e => setPodcastCategories(e.target.value)}
+                    className="bg-white/5 border-white/10 text-white rounded-xl"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label>Ảnh đại diện Podcast (Cover Image)</Label>
+                  <input 
+                    type="file" 
+                    accept="image/*"
+                    onChange={e => setPodcastCover(e.target.files ? e.target.files[0] : null)}
+                    className="w-full bg-white/5 border border-white/10 text-white rounded-xl p-2 cursor-pointer focus:outline-none focus:border-cyan-500 file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-cyan-500 file:text-black hover:file:bg-cyan-400"
+                  />
+                </div>
+
+                <div className="flex gap-3 pt-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => setShowPodcastModal(false)}
+                    className="flex-1 rounded-xl text-slate-300 hover:text-white"
+                  >
+                    Hủy bỏ
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="flex-1 bg-cyan-500 hover:bg-cyan-400 text-black font-bold rounded-xl"
+                  >
+                    Lưu thông tin
+                  </Button>
+                </div>
+              </form>
+            </div>
           </div>
-        </section>
+        )}
+
+        {/* ================= MODAL: CREATE / UPDATE EPISODE ================= */}
+        {showEpisodeModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
+            <div className="bg-slate-900 border border-white/10 rounded-3xl max-w-md w-full p-6 shadow-2xl relative space-y-6">
+              <button 
+                onClick={() => setShowEpisodeModal(false)}
+                className="absolute right-4 top-4 text-slate-400 hover:text-white border-0 bg-transparent cursor-pointer"
+              >
+                <X className="w-6 h-6" />
+              </button>
+
+              <div>
+                <h3 className="text-xl font-black text-white">{editingEpisode ? 'Sửa Tập phát sóng' : 'Thêm Tập phát sóng mới'}</h3>
+                <p className="text-xs text-slate-400 mt-1">Đăng tải nội dung âm thanh (MP3) hoặc video (MP4) vào series</p>
+              </div>
+
+              <form onSubmit={handleEpisodeSubmit} className="space-y-4">
+                <div className="space-y-1.5">
+                  <Label>Tiêu đề tập phát sóng</Label>
+                  <Input 
+                    placeholder="VD: Tập 1: Tương lai của AI..."
+                    value={episodeTitle}
+                    onChange={e => setEpisodeTitle(e.target.value)}
+                    className="bg-white/5 border-white/10 text-white rounded-xl"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label>Mô tả tập phát sóng</Label>
+                  <Textarea 
+                    placeholder="Nhập nội dung ngắn gọn của tập phát sóng này..."
+                    rows={4}
+                    value={episodeDesc}
+                    onChange={e => setEpisodeDesc(e.target.value)}
+                    className="bg-white/5 border-white/10 text-white rounded-xl resize-none"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="flex items-center gap-1.5">
+                    <FileAudio className="w-4 h-4 text-cyan-400" /> Tải lên File Âm thanh (MP3) / Video (MP4)
+                  </Label>
+                  <input 
+                    type="file" 
+                    accept="audio/*,video/*"
+                    onChange={e => setEpisodeMediaFile(e.target.files ? e.target.files[0] : null)}
+                    className="w-full bg-white/5 border border-white/10 text-white rounded-xl p-2 cursor-pointer focus:outline-none focus:border-cyan-500 file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-cyan-500 file:text-black hover:file:bg-cyan-400"
+                  />
+                  {editingEpisode && (
+                    <p className="text-[10px] text-yellow-400 italic">Để trống nếu muốn giữ nguyên file media cũ.</p>
+                  )}
+                </div>
+
+                <div className="flex gap-3 pt-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => setShowEpisodeModal(false)}
+                    className="flex-1 rounded-xl text-slate-300 hover:text-white"
+                  >
+                    Hủy bỏ
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="flex-1 bg-cyan-500 hover:bg-cyan-400 text-black font-bold rounded-xl"
+                  >
+                    Tải lên & Lưu
+                  </Button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   );
