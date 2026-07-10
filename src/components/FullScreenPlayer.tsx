@@ -11,6 +11,8 @@ const ImageWithFallback = ({ src, className }: { src: string; className?: string
 interface FullScreenPlayerProps {
   currentSong: Song;
   isPlaying: boolean;
+  isPremium?: boolean;
+  premiumStatus?: any;
   onTogglePlay: () => void;
   onNextSong: () => void;
   onPrevSong: () => void;
@@ -19,11 +21,25 @@ interface FullScreenPlayerProps {
   onVolumeChange: (v: number) => void;
   playbackRate: number;
   onPlaybackRateChange: (r: number) => void;
+  currentTime: number; // New prop
+  duration: number;    // New prop
+  progress: number;    // New prop
+  onProgressChange: (progress: number) => void; // New prop
 }
+
+// Hàm tiện ích để định dạng thời gian từ giây sang "phút:giây"
+const formatTime = (timeInSeconds: number) => {
+  if (isNaN(timeInSeconds) || timeInSeconds < 0) return "0:00";
+  const minutes = Math.floor(timeInSeconds / 60);
+  const seconds = Math.floor(timeInSeconds % 60);
+  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+};
 
 export function FullScreenPlayer({
   currentSong,
   isPlaying,
+  isPremium = false,
+  premiumStatus = null,
   onTogglePlay,
   onNextSong,
   onPrevSong,
@@ -31,12 +47,31 @@ export function FullScreenPlayer({
   volume,
   onVolumeChange,
   playbackRate,
-  onPlaybackRateChange
+  onPlaybackRateChange,
+  currentTime, // Destructure new prop
+  duration,    // Destructure new prop
+  progress,    // Destructure new prop
+  onProgressChange, // Destructure new prop
 }: FullScreenPlayerProps) {
   const [liked, setLiked] = useState(false);
   const [lyrics, setLyrics] = useState<string[]>([]);
 
+  const canViewLyrics = isPremium && (
+    premiumStatus?.packageId?.toString() === 'personal' ||
+    premiumStatus?.packageId?.toString() === 'family' ||
+    premiumStatus?.packageId?.toString() === '2' ||
+    premiumStatus?.packageId?.toString() === '3' ||
+    premiumStatus?.packageName?.toLowerCase().includes('cá nhân') ||
+    premiumStatus?.packageName?.toLowerCase().includes('gia đình') ||
+    premiumStatus?.premiumType?.toLowerCase().includes('cá nhân') ||
+    premiumStatus?.premiumType?.toLowerCase().includes('gia đình')
+  );
+
   useEffect(() => {
+    if (!canViewLyrics) {
+      setLyrics(["Tính năng xem lời bài hát chỉ dành cho gói Premium Cá nhân hoặc Gia đình."]);
+      return;
+    }
     const fetchLyrics = async () => {
       try {
         const response = await fetch(`https://api.lyrics.ovh/v1/${encodeURIComponent(currentSong.artistName)}/${encodeURIComponent(currentSong.title)}`);
@@ -51,31 +86,49 @@ export function FullScreenPlayer({
       }
     };
     fetchLyrics();
-  }, [currentSong]);
+  }, [currentSong, canViewLyrics]);
 
   return (
     <div className="fixed inset-0 z-[1000] flex flex-col md:flex-row items-center justify-center overflow-hidden text-white">
-      {/* BACKGROUND GRADIENT */}
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-900 via-black to-purple-900" />
+      {/* BACKGROUND IMAGE */}
+      <div
+        className="absolute inset-0 bg-cover bg-center filter blur-xl scale-105"
+        style={{ backgroundImage: `url(${currentSong.coverUrl})` }}
+      />
+      <div className="absolute inset-0 bg-black/40" /> {/* Lighter Overlay for readability */}
 
       {/* LEFT: COVER ART & CONTROLS */}
-      <div className="relative z-10 w-full md:w-1/2 flex flex-col items-center justify-center p-8">
-        <div className="w-72 h-72 md:w-96 md:h-96 mb-8 relative shadow-2xl rounded-2xl overflow-hidden">
+      <div className="relative z-10 w-full md:w-1/2 flex flex-col items-center justify-center p-2">
+        <div className="w-40 h-40 md:w-56 md:h-56 mb-2 relative shadow-2xl rounded-lg overflow-hidden">
           <ImageWithFallback src={currentSong.coverUrl} className="w-full h-full object-cover" />
         </div>
 
-        <h2 className="text-4xl font-bold mb-2 text-center">{currentSong.title}</h2>
-        <p className="text-white/60 text-xl mb-8">{currentSong.artistName}</p>
+        <h2 className="text-lg md:text-2xl font-bold mb-0.5 text-center">{currentSong.title}</h2>
+        <p className="text-white/60 text-xs md:text-sm mb-3">{currentSong.artistName}</p>
 
-        <div className="flex items-center gap-8">
-          <button onClick={() => setLiked(!liked)}>
-            <Heart className={`w-8 h-8 ${liked ? 'text-red-500' : 'text-white/60'}`} fill={liked ? 'currentColor' : 'none'} />
+        <div className="flex items-center gap-2 md:gap-4">
+          <button onClick={() => setLiked(!liked)} className="p-1">
+            <Heart className={`w-4 h-4 md:w-5 md:h-5 ${liked ? 'text-red-500' : 'text-white/60'}`} fill={liked ? 'currentColor' : 'none'} />
           </button>
-          <button onClick={onPrevSong}><SkipBack size={32} /></button>
-          <button onClick={onTogglePlay} className="w-20 h-20 bg-white text-black rounded-full flex items-center justify-center hover:scale-105 transition-transform">
-            {isPlaying ? <Pause size={40} /> : <Play size={40} />}
+          <button onClick={onPrevSong} className="p-1"><SkipBack size={18} className="md:w-5 md:h-5" /></button>
+          <button onClick={onTogglePlay} className="w-12 h-12 md:w-14 md:h-14 bg-white text-black rounded-full flex items-center justify-center hover:scale-105 transition-transform">
+            {isPlaying ? <Pause size={24} className="md:w-6 md:h-6" /> : <Play size={24} className="md:w-6 md:h-6" />}
           </button>
-          <button onClick={onNextSong}><SkipForward size={32} /></button>
+          <button onClick={onNextSong} className="p-1"><SkipForward size={18} className="md:w-5 md:h-5" /></button>
+        </div>
+
+        {/* Progress Bar */}
+        <div className="w-full max-w-xs flex items-center gap-2 mt-3">
+          <span className="text-xs text-white/60">{formatTime(currentTime)}</span>
+          <input
+            type="range"
+            min="0"
+            max="100"
+            value={progress}
+            onChange={(e) => onProgressChange(Number(e.target.value))}
+            className="flex-1 h-1 bg-white/20 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-2.5 [&::-webkit-slider-thumb]:h-2.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:cursor-pointer hover:[&::-webkit-slider-thumb]:bg-gray-200"
+          />
+          <span className="text-xs text-white/60">{formatTime(duration)}</span>
         </div>
       </div>
 

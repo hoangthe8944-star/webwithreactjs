@@ -15,6 +15,8 @@ interface MusicPlayerProps {
   onPrevSong: () => void;
   onClickPlayer: () => void;
   onTimeUpdate: (time: number) => void;
+  onDurationUpdate: (duration: number) => void; // New prop
+  onProgressUpdate: (progress: number) => void; // New prop
   isPremium?: boolean;
   premiumStatus?: any;
   likedSongs?: Song[];
@@ -24,6 +26,9 @@ interface MusicPlayerProps {
   setVolume: React.Dispatch<React.SetStateAction<number>>;
   playbackRate: number;
   setPlaybackRate: React.Dispatch<React.SetStateAction<number>>;
+  currentTime: number; // New prop from App.tsx
+  duration: number;    // New prop from App.tsx
+  progress: number;    // New prop from App.tsx
 }
 
 // Hàm tiện ích để định dạng thời gian từ giây sang "phút:giây"
@@ -43,6 +48,8 @@ export function MusicPlayer({
   onPrevSong,
   onClickPlayer,
   onTimeUpdate,
+  onDurationUpdate,
+  onProgressUpdate,
   isPremium = false,
   premiumStatus = null,
   likedSongs = [],
@@ -52,6 +59,9 @@ export function MusicPlayer({
   setVolume,
   playbackRate,
   setPlaybackRate,
+  currentTime, // Destructure new prop
+  duration,    // Destructure new prop
+  progress,    // Destructure new prop
 }: MusicPlayerProps) {
 
   // ✅ PHẦN 1: REFS VÀ STATE NỘI BỘ
@@ -60,9 +70,7 @@ export function MusicPlayer({
   const audioRef = useRef<HTMLVideoElement | null>(null);
 
   // State chỉ dành cho giao diện của trình phát nhạc (UI-only state)
-  const [progress, setProgress] = useState(0); // Tiến trình bài hát (tính bằng %)
-  const [currentTime, setCurrentTime] = useState(0); // Thời gian hiện tại (giây)
-  const [duration, setDuration] = useState(0);     // Tổng thời lượng (giây)
+  // currentTime, progress, duration are now managed by App.tsx, so no internal state needed here.
   const isLiked = currentSong && likedSongs ? likedSongs.some(s => s.id === currentSong.id) : false;
   const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
 
@@ -143,6 +151,8 @@ export function MusicPlayer({
   const onPrevSongRef = useRef(onPrevSong);
   const onTogglePlayRef = useRef(onTogglePlay);
   const onTimeUpdateRef = useRef(onTimeUpdate);
+  const onDurationUpdateRef = useRef(onDurationUpdate); // New ref
+  const onProgressUpdateRef = useRef(onProgressUpdate); // New ref
 
   // Keep refs up-to-date and track portal target on every render
   useEffect(() => {
@@ -150,6 +160,8 @@ export function MusicPlayer({
     onPrevSongRef.current = onPrevSong;
     onTogglePlayRef.current = onTogglePlay;
     onTimeUpdateRef.current = onTimeUpdate;
+    onDurationUpdateRef.current = onDurationUpdate; // Update ref
+    onProgressUpdateRef.current = onProgressUpdate; // Update ref
     isRepeatOneActiveRef.current = isRepeatOneActive;
 
     const target = document.getElementById('ad-video-container');
@@ -178,29 +190,33 @@ export function MusicPlayer({
     }
 
     // Thiết lập source cho đối tượng media hiện tại
-    audio.src = currentSong.streamUrl;
-    audio.load();
-    audio.volume = volume / 100;
+    if (currentSong.streamUrl) {
+      audio.src = currentSong.streamUrl;
+      audio.load();
+      audio.volume = volume / 100;
+    } else {
+      console.error("Invalid stream URL for song:", currentSong);
+      audio.src = "";
+    }
 
     // --- Lắng nghe các sự kiện quan trọng từ đối tượng media ---
 
     // 1. Khi metadata (thời lượng) đã được tải
     const handleLoadedMetadata = () => {
-      setDuration(audio.duration);
+      onDurationUpdateRef.current(audio.duration); // Update App's duration state
       audio.playbackRate = playbackRate;
     };
 
     // 2. Khi thời gian phát thay đổi -> Cập nhật UI
     const handleTimeUpdate = () => {
       const time = audio.currentTime;
-      setCurrentTime(time);
+      onTimeUpdateRef.current(time); // 🔥 BẮT BUỘC – GỬI LÊN APP
       // Ensure audio.duration is a valid, non-zero number before calculating progress
       if (audio.duration && !isNaN(audio.duration) && audio.duration > 0) {
-        setProgress((time / audio.duration) * 100);
+        onProgressUpdateRef.current((time / audio.duration) * 100); // Update App's progress state
       } else {
-        setProgress(0); // Default to 0 if duration is invalid
+        onProgressUpdateRef.current(0); // Default to 0 if duration is invalid
       }
-      onTimeUpdateRef.current(time); // 🔥 BẮT BUỘC – GỬI LÊN APP
     };
 
     // 3. Khi bài hát kết thúc -> Gọi callback để tự động chuyển bài hoặc lặp lại
@@ -256,15 +272,16 @@ export function MusicPlayer({
   // -------------------------------------------------------------------
 
   // Xử lý khi người dùng kéo thanh trượt thời lượng (tua nhạc)
+  // Xử lý khi người dùng kéo thanh trượt thời lượng (tua nhạc)
   const handleProgressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!isAllowedToControl) {
       toast.error("Tính năng tua nhạc chỉ dành cho gói Premium Cá nhân và Gia đình.");
       return;
     }
-    if (audioRef.current && duration > 0) {
+    if (audioRef.current && duration > 0) { // Use the duration prop from App.tsx
       const newProgress = Number(e.target.value);
-      setProgress(newProgress);
-      audioRef.current.currentTime = (newProgress / 100) * duration;
+      onProgressUpdate(newProgress); // Update App's progress state
+      audioRef.current.currentTime = (newProgress / 100) * duration; // Update audio currentTime
     }
   };
 

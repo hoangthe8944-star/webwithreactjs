@@ -129,6 +129,8 @@ export default function App() {
   const [currentSong, setCurrentSong] = useState<Song | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0); // New state for duration
+  const [progress, setProgress] = useState(0); // New state for progress
   const [volume, setVolume] = useState(80);
   const [playbackRate, setPlaybackRate] = useState(1.0);
   const [playQueue, setPlayQueue] = useState<Song[]>([]);
@@ -202,7 +204,7 @@ export default function App() {
             albumName: "Quảng cáo tài trợ",
             coverUrl: ad.imageUrl || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c",
             duration: ad.duration,
-            streamUrl: ad.audioUrl || "",
+            streamUrl: (ad as any).mediaUrl || (ad as any).videoUrl || (ad as any).mp4 || ad.audioUrl || "",
             status: 'PUBLISHED',
             viewCount: 0,
             isExplicit: false,
@@ -272,65 +274,74 @@ export default function App() {
 
   return (
     <div className="flex h-screen bg-gradient-to-br from-blue-700 via-cyan-600 to-cyan-400 text-white overflow-hidden">
-      {isNowPlayingFullScreen && currentSong ? (
-        <FullScreenPlayer
-          currentSong={currentSong}
-          isPlaying={isPlaying}
-          onTogglePlay={() => {
-            if (!token) {
-              navigateToAuth();
-              return;
-            }
-            setIsPlaying(!isPlaying);
-          }}
-          onNextSong={handleNextMedia}
-          onPrevSong={handlePrevMedia}
-          onClose={() => setIsNowPlayingFullScreen(false)}
-          volume={volume}
-          onVolumeChange={setVolume}
-          playbackRate={playbackRate}
-          onPlaybackRateChange={setPlaybackRate}
-        />
-      ) : (
-        <>
-          <PremiumModal
-            isOpen={isPremiumModalOpen}
-            onClose={() => setIsPremiumModalOpen(false)}
-            onSelectPackage={(pkg) => {
-              setSelectedPackageForPayment(pkg);
-              setCurrentPage('premium');
-            }}
-          />
+      <PremiumModal
+        isOpen={isPremiumModalOpen}
+        onClose={() => setIsPremiumModalOpen(false)}
+        onSelectPackage={(pkg) => {
+          setSelectedPackageForPayment(pkg);
+          setCurrentPage('premium');
+        }}
+      />
 
-          <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="fixed top-4 left-4 z-50 p-2 rounded-lg bg-blue-900/80 lg:hidden">
-            <Menu className="w-6 h-6" />
-          </button>
+      <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="fixed top-4 left-4 z-50 p-2 rounded-lg bg-blue-900/80 lg:hidden">
+        <Menu className="w-6 h-6" />
+      </button>
 
-          {isSidebarOpen && <div className="fixed inset-0 bg-black/50 z-30 lg:hidden" onClick={() => setIsSidebarOpen(false)} />}
+      {isSidebarOpen && <div className="fixed inset-0 bg-black/50 z-30 lg:hidden" onClick={() => setIsSidebarOpen(false)} />}
 
-          <Sidebar
-            currentPage={currentPage}
-            onNavigate={(page: any) => {
-              setCurrentPage(page as PageType);
-              setIsSidebarOpen(false);
-            }}
-            isOpen={isSidebarOpen}
-            onClose={() => setIsSidebarOpen(false)}
-            onProfileClick={() => {
-              if (token) {
-                setCurrentPage('profile');
-              } else {
-                navigateToAuth();
-              }
-              setIsSidebarOpen(false);
-            }}
-            onUpgradeClick={() => { setIsPremiumModalOpen(true); setIsSidebarOpen(false); }}
-          />
+      <Sidebar
+        currentPage={currentPage}
+        onNavigate={(page: any) => {
+          setCurrentPage(page as PageType);
+          setIsSidebarOpen(false);
+        }}
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+        onProfileClick={() => {
+          if (token) {
+            setCurrentPage('profile');
+          } else {
+            navigateToAuth();
+          }
+          setIsSidebarOpen(false);
+        }}
+        onUpgradeClick={() => { setIsPremiumModalOpen(true); setIsSidebarOpen(false); }}
+      />
 
-          <div className="flex-1 flex flex-col overflow-hidden">
-            <Header searchQuery={searchQuery} onSearchChange={setSearchQuery} onSearch={() => setCurrentPage('search')} />
+      <div className="flex-1 flex flex-col overflow-hidden"> {/* This div contains Header and Main */}
+        <Header searchQuery={searchQuery} onSearchChange={setSearchQuery} onSearch={() => setCurrentPage('search')} />
 
-            <main className="flex-1 overflow-y-auto pb-32">
+        <main className="flex-1 overflow-y-auto pb-32">
+          {isNowPlayingFullScreen && currentSong ? (
+            <FullScreenPlayer
+              currentSong={currentSong}
+              isPlaying={isPlaying}
+              onTogglePlay={() => {
+                if (!token) {
+                  navigateToAuth();
+                  return;
+                }
+                setIsPlaying(!isPlaying);
+              }}
+              onNextSong={handleNextMedia}
+              onPrevSong={handlePrevMedia}
+              onClose={() => setIsNowPlayingFullScreen(false)}
+              volume={volume}
+              onVolumeChange={setVolume}
+              playbackRate={playbackRate}
+              onPlaybackRateChange={setPlaybackRate}
+              currentTime={currentTime} // Pass currentTime
+              duration={duration}       // Pass duration
+              progress={progress}       // Pass progress
+              onProgressChange={(newProgress) => { // Handle progress change from FullScreenPlayer
+                if (audioRef.current && duration > 0) {
+                  audioRef.current.currentTime = (newProgress / 100) * duration;
+                  setProgress(newProgress); // Update App's progress state
+                }
+              }}
+            />
+          ) : (
+            <>
               {currentPage === 'home' && (
                 <HomePage
                   onPlaySong={handlePlaySong}
@@ -474,60 +485,69 @@ export default function App() {
                   }}
                 />
               )}
-            </main>
-            <AIChatboxAny user={user} />
-            <MediaSessionManager
-              currentSong={currentSong}
-              isPlaying={isPlaying}
-              onPlay={() => setIsPlaying(true)}
-              onPause={() => setIsPlaying(false)}
-              onNext={handleNextMedia}
-              onPrev={handlePrevMedia}
-              audioRef={audioRef as React.RefObject<HTMLAudioElement>}
-            />
-            <MusicPlayer
-              currentSong={currentSong}
-              isPlaying={isPlaying}
-              isPremium={isPremium}
-              premiumStatus={premiumStatus}
-              likedSongs={likedSongs}
-              onToggleLike={handleToggleLikeSong}
-              onTogglePlay={() => {
-                if (!token) {
-                  navigateToAuth();
-                  return;
-                }
-                setIsPlaying(!isPlaying);
-              }}
-              onClickPlayer={() => currentSong && setCurrentPage('nowplaying')}
-              onNextSong={() => {
-                if (isAdPlaying && pendingSong) {
-                  setIsAdPlaying(false);
-                  const songToPlay = pendingSong;
-                  const queueToPlay = pendingQueue;
-                  setPendingSong(null);
-                  setPendingQueue([]);
-                  handlePlaySong(songToPlay, queueToPlay, true);
-                } else {
-                  const next = (currentQueueIndex + 1) % playQueue.length;
-                  handlePlaySong(playQueue[next], playQueue);
-                }
-              }}
-              onPrevSong={() => {
-                if (isAdPlaying) return;
-                const prev = (currentQueueIndex - 1 + playQueue.length) % playQueue.length;
-                handlePlaySong(playQueue[prev], playQueue);
-              }}
-              onTimeUpdate={setCurrentTime}
-              onFullScreen={() => setIsNowPlayingFullScreen(true)}
-              volume={volume}
-              setVolume={setVolume}
-              playbackRate={playbackRate}
-              setPlaybackRate={setPlaybackRate}
-            />
-          </div>
-        </>
+            </>
+          )}
+        </main>
+      </div>
+
+      {/* MusicPlayer rendered here, as a sibling to the main content div */}
+      {currentSong && (
+        <MusicPlayer
+          currentSong={currentSong}
+          isPlaying={isPlaying}
+          isPremium={isPremium}
+          premiumStatus={premiumStatus}
+          likedSongs={likedSongs}
+          onToggleLike={handleToggleLikeSong}
+          onTogglePlay={() => {
+            if (!token) {
+              navigateToAuth();
+              return;
+            }
+            setIsPlaying(!isPlaying);
+          }}
+          onClickPlayer={() => currentSong && setCurrentPage('nowplaying')}
+          onNextSong={() => {
+            if (isAdPlaying && pendingSong) {
+              setIsAdPlaying(false);
+              const songToPlay = pendingSong;
+              const queueToPlay = pendingQueue;
+              setPendingSong(null);
+              setPendingQueue([]);
+              handlePlaySong(songToPlay, queueToPlay, true);
+            } else {
+              const next = (currentQueueIndex + 1) % playQueue.length;
+              handlePlaySong(playQueue[next], playQueue);
+            }
+          }}
+          onPrevSong={() => {
+            if (isAdPlaying) return;
+            const prev = (currentQueueIndex - 1 + playQueue.length) % playQueue.length;
+            handlePlaySong(playQueue[prev], playQueue);
+          }}
+          onTimeUpdate={setCurrentTime}
+          onDurationUpdate={setDuration} // New prop
+          onProgressUpdate={setProgress} // New prop
+          onFullScreen={() => setIsNowPlayingFullScreen(true)}
+          volume={volume}
+          setVolume={setVolume}
+          playbackRate={playbackRate}
+          setPlaybackRate={setPlaybackRate}
+          currentTime={currentTime} // Pass currentTime
+          duration={duration}       // Pass duration
+          progress={progress}       // Pass progress
+        />
       )}
+      <AIChatboxAny user={user} />
+      <MediaSessionManager
+        currentSong={currentSong}
+        isPlaying={isPlaying}
+        onPlay={() => setIsPlaying(true)}
+        onPause={() => setIsPlaying(false)}
+        onNext={handleNextMedia}
+        onPrev={handlePrevMedia}
+        audioRef={audioRef as React.RefObject<HTMLAudioElement>}
+      />
     </div>
   );
 }
