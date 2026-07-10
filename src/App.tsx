@@ -451,7 +451,20 @@ export default function App() {
                 />
               )}
               {currentPage === 'create-playlist' && (
-                <CreatePlaylistPage currentUserId={currentUserId} isAdmin={isAdmin} onBack={() => setCurrentPage('playlists')} onCreated={() => setCurrentPage('playlists')} />
+                token ? (
+                  <CreatePlaylistPage currentUserId={currentUserId} isAdmin={isAdmin} onBack={() => setCurrentPage('playlists')} onCreated={() => setCurrentPage('playlists')} />
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full text-center p-8">
+                    <h2 className="text-2xl font-bold mb-4">Vui lòng đăng nhập</h2>
+                    <p className="text-gray-400 mb-6">Bạn cần đăng nhập để tạo playlist mới.</p>
+                    <button 
+                      onClick={navigateToAuth}
+                      className="px-6 py-3 bg-white text-black font-bold rounded-full hover:scale-105 transition-transform"
+                    >
+                      Đăng nhập ngay
+                    </button>
+                  </div>
+                )
               )}
               {currentPage === 'nowplaying' && (
                 <NowPlayingPage
