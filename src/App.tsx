@@ -147,6 +147,24 @@ export default function App() {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
+  // Theme initialization
+  useEffect(() => {
+    const getCookie = (name: string): string | null => {
+      const nameEQ = name + "=";
+      const ca = document.cookie.split(';');
+      for (let i = 0; i < ca.length; i++) {
+        let c = ca[i];
+        while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+        if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+      }
+      return null;
+    };
+    const theme = getCookie('theme') || 'default';
+    const root = document.documentElement;
+    root.classList.remove('theme-light', 'theme-dark', 'theme-default');
+    root.classList.add(`theme-${theme}`);
+  }, []);
+
   const handleAuthSuccess = (newToken: string, userData: any) => {
     sessionStorage.setItem("accessToken", newToken);
     sessionStorage.setItem("user", JSON.stringify(userData));

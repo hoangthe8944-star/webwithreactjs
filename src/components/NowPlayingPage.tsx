@@ -51,7 +51,9 @@ export function NowPlayingPage({
   isPlaying,
   currentTime,
   onPlaySong,
-  onTogglePlay
+  onTogglePlay,
+  isPremium = false,
+  premiumStatus = null,
 }: NowPlayingPageProps) {
   const [liked, setLiked] = useState(false);
   const [queueOpen, setQueueOpen] = useState(false);
@@ -59,12 +61,28 @@ export function NowPlayingPage({
   const [lyrics, setLyrics] = useState<string[]>([]);
   const [loadingLyrics, setLoadingLyrics] = useState(false);
 
+  const canViewLyrics = isPremium && (
+    premiumStatus?.packageId?.toString() === 'personal' ||
+    premiumStatus?.packageId?.toString() === 'family' ||
+    premiumStatus?.packageId?.toString() === '2' ||
+    premiumStatus?.packageId?.toString() === '3' ||
+    premiumStatus?.packageName?.toLowerCase().includes('cá nhân') ||
+    premiumStatus?.packageName?.toLowerCase().includes('gia đình') ||
+    premiumStatus?.premiumType?.toLowerCase().includes('cá nhân') ||
+    premiumStatus?.premiumType?.toLowerCase().includes('gia đình')
+  );
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const activeRef = useRef<HTMLParagraphElement>(null);
 
   /* ---------------- LOAD LYRICS (PLAIN) ---------------- */
   useEffect(() => {
     if (!currentSong) return;
+
+    if (!canViewLyrics) {
+      setLyrics(["Tính năng xem lời bài hát chỉ dành cho gói Premium Cá nhân hoặc Gia đình."]);
+      return;
+    }
 
     const fetchLyrics = async () => {
       setLoadingLyrics(true);
@@ -96,7 +114,7 @@ export function NowPlayingPage({
     };
 
     fetchLyrics();
-  }, [currentSong?.id]);
+  }, [currentSong?.id, canViewLyrics]);
 
   /* ---------------- FAKE KARAOKE INDEX ---------------- */
   const activeIndex = useMemo(() => {
