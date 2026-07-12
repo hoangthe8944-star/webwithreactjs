@@ -1,0 +1,850 @@
+:global(html),
+:global(body) {
+  max-width: none;
+}
+
+.root,
+.root *,
+.root *::before,
+.root *::after {
+  box-sizing: border-box;
+}
+
+.root {
+  all: initial;
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 2147483647 !important;
+  display: block !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  min-width: 100vw !important;
+  min-height: 100vh !important;
+  min-height: 100dvh !important;
+  max-width: none !important;
+  max-height: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  isolation: isolate !important;
+  color: #fff !important;
+  background: #11131b !important;
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif !important;
+  font-size: 16px !important;
+  line-height: 1.5 !important;
+  text-align: left !important;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+.root button,
+.root input,
+.root select {
+  margin: 0;
+  font: inherit;
+  text-transform: none;
+}
+
+.root button {
+  border: 0;
+  cursor: pointer;
+}
+
+.root svg {
+  display: block;
+  flex-shrink: 0;
+}
+
+.background {
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  overflow: hidden !important;
+  pointer-events: none !important;
+  background: #11131b !important;
+}
+
+.backgroundImage {
+  position: absolute !important;
+  top: -15% !important;
+  left: -15% !important;
+  width: 130% !important;
+  height: 130% !important;
+  max-width: none !important;
+  max-height: none !important;
+  object-fit: cover !important;
+  object-position: center !important;
+  filter: blur(88px) saturate(0.78) brightness(0.62) !important;
+  transform: scale(1.16) !important;
+  opacity: 0.95 !important;
+  user-select: none !important;
+}
+
+.backgroundBlurOverlay {
+  position: absolute !important;
+  inset: 0 !important;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(8, 10, 19, 0.48) 0%,
+      rgba(8, 10, 20, 0.62) 52%,
+      rgba(4, 6, 13, 0.86) 100%
+    ) !important;
+  backdrop-filter: blur(44px) saturate(0.76) !important;
+  -webkit-backdrop-filter: blur(44px) saturate(0.76) !important;
+}
+
+.backgroundDarkOverlay {
+  position: absolute !important;
+  inset: 0 !important;
+  background: rgba(4, 6, 14, 0.28) !important;
+}
+
+.backgroundLightOverlay {
+  position: absolute !important;
+  inset: 0 !important;
+  background:
+    radial-gradient(
+      circle at 22% 22%,
+      rgba(255, 255, 255, 0.08),
+      transparent 30%
+    ),
+    radial-gradient(
+      circle at 78% 74%,
+      rgba(59, 130, 246, 0.1),
+      transparent 36%
+    ) !important;
+}
+
+.topBar {
+  position: absolute !important;
+  z-index: 30 !important;
+  top: 0 !important;
+  right: 0 !important;
+  left: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 16px 28px !important;
+  pointer-events: none !important;
+}
+
+.nowPlayingBadge,
+.closeButton {
+  pointer-events: auto !important;
+}
+
+.nowPlayingBadge {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  min-height: 40px !important;
+  padding: 8px 14px !important;
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+  border-radius: 999px !important;
+  color: rgba(255, 255, 255, 0.78) !important;
+  background: rgba(0, 0, 0, 0.36) !important;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.22) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.2em !important;
+  text-transform: uppercase !important;
+}
+
+.nowPlayingBadge svg {
+  width: 17px !important;
+  height: 17px !important;
+  color: #67e8f9 !important;
+}
+
+.closeButton {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 48px !important;
+  height: 48px !important;
+  padding: 0 !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  border-radius: 999px !important;
+  color: #fff !important;
+  background: rgba(0, 0, 0, 0.58) !important;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.48) !important;
+  backdrop-filter: blur(18px) !important;
+  -webkit-backdrop-filter: blur(18px) !important;
+  transition:
+    transform 160ms ease,
+    background 160ms ease,
+    color 160ms ease !important;
+}
+
+.closeButton:hover {
+  color: #0f172a !important;
+  background: #fff !important;
+  transform: scale(1.06) !important;
+}
+
+.closeButton svg {
+  width: 24px !important;
+  height: 24px !important;
+  stroke-width: 2.8 !important;
+}
+
+.layout {
+  position: relative !important;
+  z-index: 10 !important;
+  display: grid !important;
+  grid-template-columns: minmax(480px, 0.96fr) minmax(420px, 1.04fr) !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
+.playerSection {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  padding: 76px 38px 36px !important;
+}
+
+.playerContent {
+  width: 100% !important;
+  max-width: 600px !important;
+  margin: 0 auto !important;
+}
+
+.coverShell {
+  position: relative !important;
+  width: min(48vh, 500px) !important;
+  max-width: 100% !important;
+  aspect-ratio: 1 / 1 !important;
+  margin: 0 auto !important;
+  overflow: hidden !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 8px !important;
+  background: rgba(0, 0, 0, 0.2) !important;
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.64) !important;
+}
+
+.coverImage {
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  object-fit: cover !important;
+}
+
+.imageFallback {
+  width: 100% !important;
+  height: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: rgba(255, 255, 255, 0.18) !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+}
+
+.imageFallback svg {
+  width: 34% !important;
+  height: 34% !important;
+}
+
+.songMeta {
+  max-width: 540px !important;
+  margin: 16px auto 0 !important;
+  text-align: center !important;
+}
+
+.metaBadges {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  min-height: 26px !important;
+  margin-bottom: 8px !important;
+}
+
+.premiumBadge,
+.albumBadge {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  min-height: 26px !important;
+  padding: 4px 12px !important;
+  border-radius: 999px !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  white-space: nowrap !important;
+}
+
+.premiumBadge {
+  border: 1px solid rgba(253, 224, 71, 0.28) !important;
+  color: #fde68a !important;
+  background: rgba(0, 0, 0, 0.34) !important;
+}
+
+.premiumBadge svg {
+  width: 14px !important;
+  height: 14px !important;
+}
+
+.albumBadge {
+  max-width: 250px !important;
+  overflow: hidden !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  color: rgba(255, 255, 255, 0.68) !important;
+  background: rgba(0, 0, 0, 0.3) !important;
+  text-overflow: ellipsis !important;
+}
+
+.songMeta h1 {
+  display: -webkit-box !important;
+  margin: 0 !important;
+  overflow: hidden !important;
+  color: #fff !important;
+  font-size: clamp(26px, 2.2vw, 36px) !important;
+  font-weight: 900 !important;
+  line-height: 1.14 !important;
+  letter-spacing: -0.025em !important;
+  text-align: center !important;
+  text-shadow: 0 3px 12px rgba(0, 0, 0, 0.72) !important;
+  -webkit-box-orient: vertical !important;
+  -webkit-line-clamp: 2 !important;
+}
+
+.songMeta p {
+  margin: 7px 0 0 !important;
+  color: rgba(255, 255, 255, 0.7) !important;
+  font-size: 15px !important;
+  font-weight: 650 !important;
+  text-align: center !important;
+}
+
+.progressPanel {
+  max-width: 540px !important;
+  margin: 22px auto 0 !important;
+  padding: 14px 16px !important;
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+  border-radius: 16px !important;
+  background: rgba(0, 0, 0, 0.42) !important;
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.26) !important;
+  backdrop-filter: blur(18px) !important;
+  -webkit-backdrop-filter: blur(18px) !important;
+}
+
+.range {
+  display: block !important;
+  width: 100% !important;
+  height: 5px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+  outline: none !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  cursor: pointer !important;
+}
+
+.range::-webkit-slider-thumb {
+  width: 16px !important;
+  height: 16px !important;
+  border: 2px solid #fff !important;
+  border-radius: 999px !important;
+  background: #67e8f9 !important;
+  box-shadow: 0 0 18px rgba(103, 232, 249, 0.8) !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+}
+
+.range::-moz-range-thumb {
+  width: 16px !important;
+  height: 16px !important;
+  border: 2px solid #fff !important;
+  border-radius: 999px !important;
+  background: #67e8f9 !important;
+  box-shadow: 0 0 18px rgba(103, 232, 249, 0.8) !important;
+}
+
+.progressRange {
+  background:
+    linear-gradient(
+      to right,
+      #67e8f9 0%,
+      #fff var(--fsp-progress),
+      rgba(255, 255, 255, 0.2) var(--fsp-progress),
+      rgba(255, 255, 255, 0.2) 100%
+    ) !important;
+}
+
+.range:disabled {
+  cursor: not-allowed !important;
+  opacity: 0.5 !important;
+}
+
+.timeRow {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  margin-top: 8px !important;
+  color: rgba(255, 255, 255, 0.72) !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  font-variant-numeric: tabular-nums !important;
+}
+
+.mainControls {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 10px !important;
+  width: fit-content !important;
+  margin: 14px auto 0 !important;
+  padding: 10px !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  border-radius: 999px !important;
+  background: rgba(0, 0, 0, 0.62) !important;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.52) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+}
+
+.controlButton,
+.playButton {
+  display: inline-flex !important;
+  flex: 0 0 auto !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+  border-radius: 999px !important;
+  transition:
+    transform 160ms ease,
+    background 160ms ease,
+    border-color 160ms ease !important;
+}
+
+.controlButton {
+  width: 48px !important;
+  height: 48px !important;
+  border: 1px solid rgba(255, 255, 255, 0.26) !important;
+  color: #fff !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+.skipButton {
+  width: 56px !important;
+  height: 56px !important;
+}
+
+.controlButton:hover {
+  border-color: rgba(255, 255, 255, 0.48) !important;
+  background: rgba(255, 255, 255, 0.2) !important;
+  transform: scale(1.06) !important;
+}
+
+.controlButton svg {
+  width: 25px !important;
+  height: 25px !important;
+  stroke-width: 2.6 !important;
+}
+
+.skipButton svg {
+  width: 29px !important;
+  height: 29px !important;
+}
+
+.likedButton {
+  border-color: rgba(253, 164, 175, 0.72) !important;
+  color: #fff !important;
+  background: #f43f5e !important;
+}
+
+.playButton {
+  width: 76px !important;
+  height: 76px !important;
+  border: 4px solid rgba(255, 255, 255, 0.82) !important;
+  color: #0f172a !important;
+  background: #fff !important;
+  box-shadow: 0 14px 38px rgba(255, 255, 255, 0.28) !important;
+}
+
+.playButton:hover {
+  background: #cffafe !important;
+  transform: scale(1.06) !important;
+}
+
+.playButton svg {
+  width: 36px !important;
+  height: 36px !important;
+  stroke-width: 2.8 !important;
+}
+
+.playIcon {
+  margin-left: 4px !important;
+}
+
+.controlSpacer {
+  display: block !important;
+  width: 48px !important;
+  height: 48px !important;
+}
+
+.secondaryControls {
+  display: grid !important;
+  grid-template-columns: 1fr auto !important;
+  gap: 12px !important;
+  max-width: 540px !important;
+  margin: 14px auto 0 !important;
+  padding: 12px !important;
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+  border-radius: 16px !important;
+  background: rgba(0, 0, 0, 0.5) !important;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.28) !important;
+  backdrop-filter: blur(18px) !important;
+  -webkit-backdrop-filter: blur(18px) !important;
+}
+
+.volumeControl {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  min-width: 0 !important;
+  padding: 4px 8px !important;
+}
+
+.volumeControl > svg {
+  width: 20px !important;
+  height: 20px !important;
+  color: #fff !important;
+  stroke-width: 2.6 !important;
+}
+
+.volumeControl > span {
+  width: 30px !important;
+  color: rgba(255, 255, 255, 0.76) !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  text-align: right !important;
+  font-variant-numeric: tabular-nums !important;
+}
+
+.volumeRange {
+  flex: 1 1 auto !important;
+  min-width: 80px !important;
+  background:
+    linear-gradient(
+      to right,
+      #fff 0%,
+      #fff var(--fsp-volume),
+      rgba(255, 255, 255, 0.2) var(--fsp-volume),
+      rgba(255, 255, 255, 0.2) 100%
+    ) !important;
+}
+
+.volumeRange::-webkit-slider-thumb {
+  width: 14px !important;
+  height: 14px !important;
+  border: 0 !important;
+  background: #fff !important;
+  box-shadow: none !important;
+}
+
+.volumeRange::-moz-range-thumb {
+  width: 14px !important;
+  height: 14px !important;
+  border: 0 !important;
+  background: #fff !important;
+  box-shadow: none !important;
+}
+
+.rateControl {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 8px 12px !important;
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+  border-radius: 12px !important;
+  color: #fff !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+.rateControl svg {
+  width: 17px !important;
+  height: 17px !important;
+}
+
+.rateControl select {
+  min-width: 54px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  outline: none !important;
+  color: #fff !important;
+  background: transparent !important;
+  font-size: 13px !important;
+  font-weight: 800 !important;
+  cursor: pointer !important;
+}
+
+.rateControl option {
+  color: #fff !important;
+  background: #111827 !important;
+}
+
+.lyricsSection {
+  min-width: 0 !important;
+  min-height: 0 !important;
+  padding: 28px 28px 28px 0 !important;
+}
+
+.lyricsPanel {
+  position: relative !important;
+  display: flex !important;
+  flex-direction: column !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+  border-radius: 30px !important;
+  background: rgba(0, 0, 0, 0.42) !important;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.44) !important;
+  backdrop-filter: blur(22px) !important;
+  -webkit-backdrop-filter: blur(22px) !important;
+}
+
+.lyricsHeader {
+  display: flex !important;
+  flex: 0 0 auto !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  min-height: 88px !important;
+  padding: 20px 30px !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.lyricsHeader > div > span {
+  display: block !important;
+  color: rgba(165, 243, 252, 0.82) !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.24em !important;
+  text-transform: uppercase !important;
+}
+
+.lyricsHeader h2 {
+  margin: 4px 0 0 !important;
+  color: #fff !important;
+  font-size: 21px !important;
+  font-weight: 800 !important;
+  line-height: 1.25 !important;
+}
+
+.lyricsScroll {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  padding: 38px 36px 90px !important;
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(255, 255, 255, 0.22) transparent !important;
+}
+
+.lyricsScroll::-webkit-scrollbar {
+  width: 8px !important;
+}
+
+.lyricsScroll::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+
+.lyricsScroll::-webkit-scrollbar-thumb {
+  border-radius: 999px !important;
+  background: rgba(255, 255, 255, 0.2) !important;
+}
+
+.loadingLyrics {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-direction: column !important;
+  gap: 12px !important;
+  min-height: 300px !important;
+  color: rgba(255, 255, 255, 0.66) !important;
+  font-size: 14px !important;
+}
+
+.loadingLyrics svg {
+  width: 28px !important;
+  height: 28px !important;
+  color: #67e8f9 !important;
+  animation: fsp-spin 0.9s linear infinite !important;
+}
+
+.lyricsContent {
+  max-width: 760px !important;
+  margin: 0 auto !important;
+}
+
+.lyricsContent p {
+  margin: 0 0 24px !important;
+  color: rgba(255, 255, 255, 0.6) !important;
+  font-size: clamp(21px, 1.75vw, 29px) !important;
+  font-weight: 650 !important;
+  line-height: 1.55 !important;
+  letter-spacing: -0.015em !important;
+  transition:
+    color 160ms ease,
+    transform 160ms ease !important;
+}
+
+.lyricsContent p:hover {
+  color: #fff !important;
+  transform: translateX(4px) !important;
+}
+
+.singleLyricMessage {
+  max-width: 660px !important;
+  margin: 120px auto 0 !important;
+  color: rgba(255, 255, 255, 0.72) !important;
+  text-align: center !important;
+}
+
+@keyframes fsp-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 1100px) {
+  .root {
+    overflow-y: auto !important;
+  }
+
+  .layout {
+    grid-template-columns: 1fr !important;
+    height: auto !important;
+    min-height: 100% !important;
+    overflow: visible !important;
+  }
+
+  .playerSection {
+    min-height: 100vh !important;
+    min-height: 100dvh !important;
+    padding: 86px 24px 34px !important;
+  }
+
+  .coverShell {
+    width: min(54vh, 470px) !important;
+  }
+
+  .lyricsSection {
+    min-height: 72vh !important;
+    padding: 0 22px 24px !important;
+  }
+
+  .lyricsPanel {
+    min-height: 640px !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .topBar {
+    padding: 14px 16px !important;
+  }
+
+  .nowPlayingBadge {
+    min-height: 38px !important;
+    padding: 7px 11px !important;
+    font-size: 10px !important;
+  }
+
+  .closeButton {
+    width: 44px !important;
+    height: 44px !important;
+  }
+
+  .playerSection {
+    padding: 78px 14px 28px !important;
+  }
+
+  .coverShell {
+    width: min(78vw, 390px) !important;
+  }
+
+  .songMeta h1 {
+    font-size: 26px !important;
+  }
+
+  .progressPanel,
+  .secondaryControls {
+    max-width: 100% !important;
+  }
+
+  .mainControls {
+    gap: 6px !important;
+    padding: 8px !important;
+  }
+
+  .controlButton {
+    width: 42px !important;
+    height: 42px !important;
+  }
+
+  .skipButton {
+    width: 48px !important;
+    height: 48px !important;
+  }
+
+  .playButton {
+    width: 66px !important;
+    height: 66px !important;
+  }
+
+  .playButton svg {
+    width: 31px !important;
+    height: 31px !important;
+  }
+
+  .controlSpacer {
+    display: none !important;
+  }
+
+  .secondaryControls {
+    grid-template-columns: 1fr !important;
+  }
+
+  .rateControl {
+    justify-content: center !important;
+  }
+
+  .lyricsSection {
+    padding: 0 12px 16px !important;
+  }
+
+  .lyricsPanel {
+    min-height: 580px !important;
+    border-radius: 22px !important;
+  }
+
+  .lyricsHeader {
+    padding: 18px 20px !important;
+  }
+
+  .lyricsScroll {
+    padding: 30px 20px 72px !important;
+  }
+
+  .lyricsContent p {
+    margin-bottom: 20px !important;
+    font-size: 21px !important;
+  }
+}

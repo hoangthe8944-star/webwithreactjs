@@ -29,7 +29,6 @@ import type { Artist } from '../api/artistApi';
 import { ArtistPage } from './components/ArtistPage';
 import { PremiumModal } from './components/PremiumModal';
 import { PaymentPage } from './components/PaymentPage';
-import { PremiumPage } from './components/PremiumPage';
 import { getPremiumStatus } from '../api/premiumApi';
 import type { PremiumStatusResponse } from '../api/premiumApi';
 
@@ -277,21 +276,31 @@ export default function App() {
   if (currentHash.includes('/verify')) return <VerifyPage />;
 
   const handleNextMedia = () => {
-    if (playQueue.length > 0) {
-      const nextIndex = (currentQueueIndex + 1) % playQueue.length;
-      handlePlaySong(playQueue[nextIndex], playQueue);
+    if (isAdPlaying && pendingSong) {
+      setIsAdPlaying(false);
+      const songToPlay = pendingSong;
+      const queueToPlay = pendingQueue;
+      setPendingSong(null);
+      setPendingQueue([]);
+      handlePlaySong(songToPlay, queueToPlay, true);
+      return;
     }
+
+    if (playQueue.length === 0) return;
+
+    const nextIndex = (currentQueueIndex + 1) % playQueue.length;
+    handlePlaySong(playQueue[nextIndex], playQueue);
   };
 
   const handlePrevMedia = () => {
-    if (playQueue.length > 0) {
-      const prevIndex = (currentQueueIndex - 1 + playQueue.length) % playQueue.length;
-      handlePlaySong(playQueue[prevIndex], playQueue);
-    }
+    if (isAdPlaying || playQueue.length === 0) return;
+
+    const prevIndex = (currentQueueIndex - 1 + playQueue.length) % playQueue.length;
+    handlePlaySong(playQueue[prevIndex], playQueue);
   };
 
   return (
-    <div className="flex h-screen bg-gradient-to-br from-blue-700 via-cyan-600 to-cyan-400 text-white overflow-hidden">
+    <div className="relative h-screen bg-gradient-to-br from-blue-700 via-cyan-600 to-cyan-400 text-white overflow-hidden">
       <PremiumModal
         isOpen={isPremiumModalOpen}
         onClose={() => setIsPremiumModalOpen(false)}
@@ -301,9 +310,11 @@ export default function App() {
         }}
       />
 
-      <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="fixed top-4 left-4 z-50 p-2 rounded-lg bg-blue-900/80 lg:hidden">
-        <Menu className="w-6 h-6" />
-      </button>
+      {!isNowPlayingFullScreen && (
+        <div className="flex h-full">
+          <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="fixed top-4 left-4 z-50 p-2 rounded-lg bg-blue-900/80 lg:hidden">
+            <Menu className="w-6 h-6" />
+          </button>
 
       {isSidebarOpen && <div className="fixed inset-0 bg-black/50 z-30 lg:hidden" onClick={() => setIsSidebarOpen(false)} />}
 
@@ -330,36 +341,7 @@ export default function App() {
         <Header searchQuery={searchQuery} onSearchChange={setSearchQuery} onSearch={() => setCurrentPage('search')} />
 
         <main className="flex-1 overflow-y-auto pb-32">
-          {isNowPlayingFullScreen && currentSong ? (
-            <FullScreenPlayer
-              currentSong={currentSong}
-              isPlaying={isPlaying}
-              onTogglePlay={() => {
-                if (!token) {
-                  navigateToAuth();
-                  return;
-                }
-                setIsPlaying(!isPlaying);
-              }}
-              onNextSong={handleNextMedia}
-              onPrevSong={handlePrevMedia}
-              onClose={() => setIsNowPlayingFullScreen(false)}
-              volume={volume}
-              onVolumeChange={setVolume}
-              playbackRate={playbackRate}
-              onPlaybackRateChange={setPlaybackRate}
-              currentTime={currentTime} // Pass currentTime
-              duration={duration}       // Pass duration
-              progress={progress}       // Pass progress
-              onProgressChange={(newProgress) => { // Handle progress change from FullScreenPlayer
-                if (audioRef.current && duration > 0) {
-                  audioRef.current.currentTime = (newProgress / 100) * duration;
-                  setProgress(newProgress); // Update App's progress state
-                }
-              }}
-            />
-          ) : (
-            <>
+          <>
               {currentPage === 'home' && (
                 <HomePage
                   onPlaySong={handlePlaySong}
@@ -475,7 +457,7 @@ export default function App() {
                       navigateToAuth();
                       return;
                     }
-                    setIsPlaying(!isPlaying);
+                    setIsPlaying((prev) => !prev);
                   }}
                   onPlaySong={handlePlaySong}
                   currentTime={currentTime}
@@ -516,14 +498,50 @@ export default function App() {
                   }}
                 />
               )}
-            </>
-          )}
+          </>
         </main>
       </div>
+        </div>
+      )}
 
-      {/* MusicPlayer rendered here, as a sibling to the main content div */}
+      {isNowPlayingFullScreen && currentSong && (
+        <div className="fixed inset-0 z-[100] bg-slate-950">
+          <FullScreenPlayer
+            currentSong={currentSong}
+            isPlaying={isPlaying}
+            onTogglePlay={() => {
+              if (!token) {
+                navigateToAuth();
+                return;
+              }
+              setIsPlaying((prev) => !prev);
+            }}
+            onNextSong={handleNextMedia}
+            onPrevSong={handlePrevMedia}
+            onClose={() => setIsNowPlayingFullScreen(false)}
+            volume={volume}
+            onVolumeChange={setVolume}
+            playbackRate={playbackRate}
+            onPlaybackRateChange={setPlaybackRate}
+            currentTime={currentTime}
+            duration={duration}
+            progress={progress}
+            onProgressChange={(newProgress) => {
+              if (audioRef.current && duration > 0) {
+                const newTime = (newProgress / 100) * duration;
+                audioRef.current.currentTime = newTime;
+                setCurrentTime(newTime);
+              }
+              setProgress(newProgress);
+            }}
+          />
+        </div>
+      )}
+
+      {/* MusicPlayer stays mounted so audio does not restart when fullscreen opens. */}
       {currentSong && (
-        <MusicPlayer
+        <div className={isNowPlayingFullScreen ? "hidden" : "block"}>
+          <MusicPlayer
           currentSong={currentSong}
           isPlaying={isPlaying}
           isPremium={isPremium}
@@ -538,28 +556,15 @@ export default function App() {
             setIsPlaying(!isPlaying);
           }}
           onClickPlayer={() => currentSong && setCurrentPage('nowplaying')}
-          onNextSong={() => {
-            if (isAdPlaying && pendingSong) {
-              setIsAdPlaying(false);
-              const songToPlay = pendingSong;
-              const queueToPlay = pendingQueue;
-              setPendingSong(null);
-              setPendingQueue([]);
-              handlePlaySong(songToPlay, queueToPlay, true);
-            } else {
-              const next = (currentQueueIndex + 1) % playQueue.length;
-              handlePlaySong(playQueue[next], playQueue);
-            }
-          }}
-          onPrevSong={() => {
-            if (isAdPlaying) return;
-            const prev = (currentQueueIndex - 1 + playQueue.length) % playQueue.length;
-            handlePlaySong(playQueue[prev], playQueue);
-          }}
+          onNextSong={handleNextMedia}
+          onPrevSong={handlePrevMedia}
           onTimeUpdate={setCurrentTime}
           onDurationUpdate={setDuration} // New prop
           onProgressUpdate={setProgress} // New prop
-          onFullScreen={() => setIsNowPlayingFullScreen(true)}
+          onFullScreen={() => {
+            setIsSidebarOpen(false);
+            setIsNowPlayingFullScreen(true);
+          }}
           volume={volume}
           setVolume={setVolume}
           playbackRate={playbackRate}
@@ -567,9 +572,10 @@ export default function App() {
           currentTime={currentTime} // Pass currentTime
           duration={duration}       // Pass duration
           progress={progress}       // Pass progress
-        />
+          />
+        </div>
       )}
-      <AIChatboxAny user={user} />
+      {!isNowPlayingFullScreen && <AIChatboxAny user={user} />}
       <MediaSessionManager
         currentSong={currentSong}
         isPlaying={isPlaying}
