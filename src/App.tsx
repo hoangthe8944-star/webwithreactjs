@@ -125,6 +125,39 @@ export default function App() {
     fetchPremiumStatus();
   }, [token]);
 
+  useEffect(() => {
+    // Handle MoMo payment callback parameters
+    const getParams = (search: string) => new URLSearchParams(search);
+    let resultCode: string | null = null;
+    let partnerCode: string | null = null;
+
+    // First, try standard query string
+    const searchParams = getParams(window.location.search);
+    resultCode = searchParams.get('resultCode');
+    partnerCode = searchParams.get('partnerCode');
+
+    // If not found, try hash query (e.g., #/?resultCode=0&partnerCode=...)
+    if (!resultCode && window.location.hash.includes('?')) {
+      const hashQuery = window.location.hash.split('?')[1];
+      const hashParams = getParams(hashQuery);
+      resultCode = hashParams.get('resultCode');
+      partnerCode = hashParams.get('partnerCode');
+    }
+
+    if (resultCode) {
+      if (resultCode === '0') {
+        toast.success('Thanh toán MoMo thành công! Đã kích hoạt gói Premium.');
+        // Refresh premium status
+        fetchPremiumStatus();
+      } else {
+        toast.error(`Thanh toán MoMo thất bại (Mã: ${resultCode}).`);
+      }
+      // Clean URL to avoid reprocessing on refresh
+      const cleanPath = window.location.pathname + (window.location.hash.split('?')[0] || '');
+      window.history.replaceState({}, document.title, cleanPath);
+    }
+  }, []);
+
   const [currentSong, setCurrentSong] = useState<Song | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
