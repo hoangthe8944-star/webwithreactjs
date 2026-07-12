@@ -149,6 +149,9 @@ export default function App() {
         toast.success('Thanh toán MoMo thành công! Đã kích hoạt gói Premium.');
         // Refresh premium status
         fetchPremiumStatus();
+        // Navigate to profile page and clear selected package
+        setCurrentPage('profile'); // Assuming profile page shows premium status
+        setSelectedPackageForPayment(null); // Clear the selected package
       } else {
         toast.error(`Thanh toán MoMo thất bại (Mã: ${resultCode}).`);
       }
