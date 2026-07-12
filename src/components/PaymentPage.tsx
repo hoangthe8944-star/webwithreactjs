@@ -153,7 +153,7 @@ export function PaymentPage({ selectedPackage, onCancel, onPaymentSuccess }: Pay
             </button>
 
             {/* Direct/trial option */}
-            {/* <button
+             <button
               onClick={handleDirectPayment}
               disabled={!!actionLoading}
               className="w-full bg-white/5 hover:bg-white/10 text-slate-200 border border-white/10 flex items-center justify-between p-6 rounded-2xl font-bold text-base transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50"
@@ -172,7 +172,7 @@ export function PaymentPage({ selectedPackage, onCancel, onPaymentSuccess }: Pay
               ) : (
                 <ShieldCheck className="w-6 h-6 text-slate-400" />
               )}
-            </button> */}
+            </button>
           </div>
 
           <div className="mt-8 border-t border-white/5 pt-6 text-center">
